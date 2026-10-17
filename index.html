@@ -1,0 +1,1620 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#d6457a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="암기카드">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>영양·의사소통 암기카드</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: single study column — topic strip, one flip card, judge buttons, number grid of results */
+:root{
+  --paper:#f6f7fb; --sheet:#ffffff; --ink:#1f2a44; --muted:#5d6681; --line:#dfe3ee;
+  --accent:#d6457a; --accent-soft:#fbe6ee; --ok:#1f8a5b; --ok-soft:#dff3e9; --bad:#c2412d; --bad-soft:#fbe5e0;
+  --back:#1f2a44; --back-ink:#f3f5fb;
+  --display:"Gowun Batang", "Noto Serif KR", serif;
+  --body:"Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12151f; --sheet:#1b2030; --ink:#e7eaf4; --muted:#9aa2bb; --line:#2c3347;
+  --accent:#ef7aa3; --accent-soft:#3a2130; --ok:#5fcf9a; --ok-soft:#173528; --bad:#f08a76; --bad-soft:#3d221d;
+  --back:#2a3350; --back-ink:#f3f5fb; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#12151f; --sheet:#1b2030; --ink:#e7eaf4; --muted:#9aa2bb; --line:#2c3347;
+  --accent:#ef7aa3; --accent-soft:#3a2130; --ok:#5fcf9a; --ok-soft:#173528; --bad:#f08a76; --bad-soft:#3d221d;
+  --back:#2a3350; --back-ink:#f3f5fb; color-scheme:dark}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6}
+.wrap{max-width:680px;margin:0 auto;padding-block:18px 48px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));display:flex;flex-direction:column;gap:16px}
+h1{font-family:var(--display);font-size:1.55rem;margin:0;line-height:1.3;text-wrap:balance}
+h1 em{font-style:normal;color:var(--accent)}
+.sub{color:var(--muted);font-size:.85rem;margin:2px 0 0}
+.grouplabel{font-size:.72rem;letter-spacing:.08em;color:var(--muted);font-weight:700;margin:0 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--sheet);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:.85rem;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip .cnt{font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip[aria-pressed="true"] .cnt{color:#fff;opacity:.85}
+.topicbar{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.topicbar h2{font-family:var(--display);font-size:1.2rem;margin:0}
+.pos{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.85rem}
+.modeTag{font-size:.75rem;background:var(--bad-soft);color:var(--bad);padding:2px 8px;border-radius:6px;margin-left:6px}
+.card{display:block;cursor:pointer;min-height:260px;border-radius:16px}
+.face{border-radius:16px;padding:22px 20px 18px;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:260px;animation:fade .25s ease}
+.card.flipped .front{display:none}
+.card:not(.flipped) .back{display:none}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.front{background:var(--sheet);border:1px solid var(--line);box-shadow:0 6px 18px rgba(31,42,68,.08);
+  background-image:repeating-linear-gradient(to bottom, transparent 0 31px, var(--line) 31px 32px);background-position:0 54px}
+.back{background:var(--back);color:var(--back-ink)}
+[hidden]{display:none!important}
+#app:not([hidden]){display:contents}
+.fb h2{font-family:var(--display);font-size:1.15rem;margin:18px 0 8px}
+.fb details{background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:6px}
+.fb summary{cursor:pointer;font-weight:500}
+.fb details p{white-space:pre-line;margin:8px 0 0;color:var(--muted)}
+.fb .note{font-size:.85rem;color:var(--muted)}
+.tag{font-size:.72rem;font-weight:700;letter-spacing:.08em}
+.front .tag{color:var(--accent)} .back .tag{color:#ffb8d0}
+.q{font-family:var(--display);font-size:1.25rem;line-height:1.55;flex:1;display:flex;align-items:center;text-wrap:balance}
+.a{white-space:pre-line;font-size:.98rem;line-height:1.7;flex:1;overflow-wrap:anywhere}
+.hint{font-size:.75rem;opacity:.65;text-align:right}
+.judge{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{font:inherit;border-radius:12px;padding:12px 10px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);cursor:pointer;font-weight:500}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.x{background:var(--bad-soft);color:var(--bad);border-color:transparent;font-weight:700}
+.btn.o{background:var(--ok-soft);color:var(--ok);border-color:transparent;font-weight:700}
+.nav{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn:focus-visible,.chip:focus-visible,.card:focus-visible,.num:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.panel{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.score{display:flex;gap:14px;flex-wrap:wrap;font-variant-numeric:tabular-nums;font-size:.9rem}
+.score b{font-size:1.1rem}
+.s-ok{color:var(--ok)} .s-bad{color:var(--bad)} .s-none{color:var(--muted)}
+.nums{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px}
+.num{font:inherit;font-size:.85rem;font-variant-numeric:tabular-nums;height:38px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+.num.o{background:var(--ok-soft);color:var(--ok);border-color:transparent;font-weight:700}
+.num.x{background:var(--bad-soft);color:var(--bad);border-color:transparent;font-weight:700}
+.num.cur{outline:2px solid var(--ink);outline-offset:1px}
+.lists{display:flex;flex-direction:column;gap:4px;font-size:.88rem}
+.lists span{font-variant-numeric:tabular-nums}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.tools .btn{padding:8px 12px;font-size:.85rem;flex:1 1 auto}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.85rem;color:var(--bad)}
+@media (prefers-reduced-motion: reduce){.face{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>영양·의사소통 <em>암기카드</em></h1>
+    <p class="sub">카드를 눌러 답을 확인하고, 맞았는지 스스로 표시하세요. 기록은 이 기기에 저장됩니다.</p>
+  </header>
+
+<section class="fb" id="fallback"><p class="note">이 화면은 간단 보기 목록입니다. 문제를 누르면 답이 펼쳐집니다.</p>
+<h2>영양 · 무기질 (88)</h2>
+<details><summary>1. 무기질의 정의는?</summary><p>탄소를 함유하지 않은 물질</p></details>
+<details><summary>2. 무기질은 신체의 몇 %를 차지하나?</summary><p>4%</p></details>
+<details><summary>3. 다량무기질의 기준은?</summary><p>하루 필요량 100mg 이상</p></details>
+<details><summary>4. 다량무기질의 종류는?</summary><p>칼슘, 인, 마그네슘, 칼륨, 나트륨, 염소, 유황 등</p></details>
+<details><summary>5. 골격 형성에 중요한 다량무기질 3가지는?</summary><p>마그네슘, 인, 칼슘</p></details>
+<details><summary>6. 마그네슘·인·칼슘이 골격·치아에 존재하는 비율은?</summary><p>마그네슘 60%
+인 85%
+칼슘 99%</p></details>
+<details><summary>7. 칼슘의 몇 %가 골격·치아에 존재하나?</summary><p>99%</p></details>
+<details><summary>8. 인의 몇 %가 골격·치아에 존재하나?</summary><p>85%</p></details>
+<details><summary>9. 마그네슘의 몇 %가 골격·치아에 존재하나?</summary><p>60%</p></details>
+<details><summary>10. 뼈가 만들어지는 과정은?</summary><p>콜라겐 분비 → 뼈 구조물 형성 → (칼슘·인) 석회화 진행</p></details>
+<details><summary>11. 뼈를 만드는 세포와 분해하는 세포의 이름은?</summary><p>조골세포(만듦), 파골세포(분해)</p></details>
+<details><summary>12. 조골세포와 파골세포의 속도는 나이에 따라 어떻게 변하나?</summary><p>처음에는 조골세포가 빠르다가
+노화되면 파골세포가 우세</p></details>
+<details><summary>13. 뼈의 역할은?</summary><p>몸 형태·골격 유지, 충격 보호
+칼슘·인의 저장소</p></details>
+<details><summary>14. 성인은 매년 뼈의 몇 %가 교체되나?</summary><p>20%</p></details>
+<details><summary>15. 골다공증이란?</summary><p>골밀도가 감소한 상태</p></details>
+<details><summary>16. 해면골의 역할은?</summary><p>필요 시 칼슘을 혈액으로 용출 → 혈중 칼슘 농도 유지</p></details>
+<details><summary>17. 골다공증의 원인 6가지는?</summary><p>① 칼슘·비타민 D 섭취 부족
+② 연령
+③ 운동 부족
+④ 성별·마른 체격
+⑤ 흡연·음주
+⑥ 가족력</p></details>
+<details><summary>18. 폐경기 이후 골다공증이 생기는 과정은?</summary><p>에스트로겐 분비 X → 비타민 D 합성↓ → 칼슘 흡수율↓ → 혈중 칼슘 농도↓</p></details>
+<details><summary>19. 골다공증 예방법 5가지는?</summary><p>① 칼슘 함유 식품 섭취
+② 비타민 C, D 섭취
+③ 단백질, 인 섭취
+④ 운동
+⑤ 에스트로겐 요법, 칼슘 보충제</p></details>
+<details><summary>20. 칼슘 흡수 촉진 인자 6가지는?</summary><p>① 비타민 C, D
+② 포도당·유당
+③ 성장기·임신기
+④ 낮은 칼슘 섭취
+⑤ 소장 내 산성 환경
+⑥ 부갑상선 호르몬, 에스트로겐</p></details>
+<details><summary>21. 칼슘 흡수 저해 인자 5가지는?</summary><p>① 비타민 D 결핍
+② 탄닌, 과량의 식이섬유, 피틴산, 수산, 지방산
+③ 폐경, 노인
+④ 과량의 인·철분·아연
+⑤ 소장 내 알칼리성 환경</p></details>
+<details><summary>22. 칼슘 흡수에 유리한 소장 환경은 산성인가, 알칼리성인가?</summary><p>산성 (알칼리성 환경은 흡수 저해)</p></details>
+<details><summary>23. 칼슘 흡수를 돕는 당 2가지는?</summary><p>포도당, 유당</p></details>
+<details><summary>24. 칼슘 흡수를 돕는 호르몬은?</summary><p>부갑상선 호르몬, 에스트로겐</p></details>
+<details><summary>25. 칼슘 흡수를 방해하는 식품 성분은?</summary><p>탄닌, 과량의 식이섬유, 피틴산, 수산, 지방산</p></details>
+<details><summary>26. 과량 섭취 시 칼슘 흡수를 방해하는 무기질은?</summary><p>인, 철분, 아연</p></details>
+<details><summary>27. 나트륨·칼륨·염소가 공통으로 관여하는 기능은?</summary><p>체액의 삼투압, 수분 평형</p></details>
+<details><summary>28. 나트륨(Na)은 어디의 어떤 이온인가?</summary><p>세포 외액의 양이온</p></details>
+<details><summary>29. 칼륨(K)은 어디의 어떤 이온인가?</summary><p>세포 내액의 양이온</p></details>
+<details><summary>30. 염소(Cl)는 어디의 어떤 이온인가?</summary><p>세포 외액의 음이온</p></details>
+<details><summary>31. 세포내액은 체내 수분량의 얼마이고, 무엇으로 조절되나?</summary><p>체내 수분량의 2/3
+칼륨·인의 농도로 조절</p></details>
+<details><summary>32. 세포외액은 체내 수분량의 얼마이고, 무엇으로 조절되나?</summary><p>체내 수분량의 1/3
+나트륨·염소의 농도로 조절</p></details>
+<details><summary>33. 짠 음식을 많이 먹었을 때 수분평형이 이루어지는 과정은?</summary><p>세포 외액 나트륨 농도↑ → 내액의 수분이 밖으로 이동 → 내액 수분 함량↓ → 갈증 → 물 섭취 → 수분 평형</p></details>
+<details><summary>34. 물을 많이 섭취했을 때 수분평형이 이루어지는 과정은?</summary><p>세포 외액의 전해질 농도↓ → 신장에서 소변 많이 배출 → 수분 평형</p></details>
+<details><summary>35. 나트륨의 기능 3가지는?</summary><p>신경자극전달, 삼투압 조절, 산-염기 평형</p></details>
+<details><summary>36. 나트륨 결핍증은?</summary><p>근육경련, 식욕감퇴</p></details>
+<details><summary>37. 나트륨 과잉증은?</summary><p>고혈압, 요중 칼슘 손실</p></details>
+<details><summary>38. 나트륨의 급원은?</summary><p>장류, 장아찌, 베이킹파우더</p></details>
+<details><summary>39. 칼륨의 기능은?</summary><p>신경자극전달, 삼투압 조절, 산-염기 평형 (나트륨과 같음)</p></details>
+<details><summary>40. 칼륨 결핍증은?</summary><p>근육경련, 식욕감퇴, 불규칙한 심장박동</p></details>
+<details><summary>41. 칼륨 과잉증은?</summary><p>느린 심장박동</p></details>
+<details><summary>42. 칼륨의 급원은?</summary><p>채소, 과일, 육류, 우유</p></details>
+<details><summary>43. 염소의 기능 2가지는?</summary><p>신경자극전달, 위액 형성</p></details>
+<details><summary>44. 염소 결핍증은?</summary><p>혼수상태(유아의 경우)</p></details>
+<details><summary>45. 염소 과잉증과 급원은?</summary><p>과잉: 고혈압
+급원: 식탁염, 가공식품</p></details>
+<details><summary>46. 결핍 시 &#x27;불규칙한 심장박동&#x27;, 과잉 시 &#x27;느린 심장박동&#x27;이 나타나는 무기질은?</summary><p>칼륨</p></details>
+<details><summary>47. 소금은 무엇으로 이루어져 있고, 소금 1g에 든 나트륨은?</summary><p>소금 = 나트륨 + 염소
+1g → 나트륨 400mg</p></details>
+<details><summary>48. 나트륨 과다 섭취가 골다공증으로 이어지는 이유는?</summary><p>소변으로 나트륨 배출이 많아지면 뼈 속 칼슘 배출도 증가 → 골다공증 위험↑</p></details>
+<details><summary>49. WHO 1일 권장 나트륨 섭취량은?</summary><p>2,000mg</p></details>
+<details><summary>50. 한국 성인의 1일 나트륨 섭취량은?</summary><p>3,274mg</p></details>
+<details><summary>51. 미량무기질의 기준은?</summary><p>체중의 0.005% 미만, 생명 유지에 필수적</p></details>
+<details><summary>52. 미량무기질 5가지는? (노트 기준)</summary><p>철분, 아연, 요오드, 불소, 셀레늄</p></details>
+<details><summary>53. 철분의 기능은?</summary><p>헤모글로빈 성분, 면역기능, 인지발달</p></details>
+<details><summary>54. 철분의 결핍증과 과잉증은?</summary><p>결핍: 철분결핍성 빈혈
+과잉: 혈색소증</p></details>
+<details><summary>55. 철분의 급원은?</summary><p>육류, 해산물, 강화 시리얼</p></details>
+<details><summary>56. 아연의 기능은?</summary><p>효소의 구성요소, 생체막 구조·기능 유지</p></details>
+<details><summary>57. 아연 결핍증은?</summary><p>성장지연, 피부발진, 식욕부진</p></details>
+<details><summary>58. 아연 과잉증은?</summary><p>설사, 근육경련, 면역기능↓</p></details>
+<details><summary>59. 아연의 급원은?</summary><p>굴, 새우, 게, 육류</p></details>
+<details><summary>60. 요오드의 기능은?</summary><p>갑상선 호르몬의 성분</p></details>
+<details><summary>61. 요오드의 결핍증과 과잉증은?</summary><p>결핍: 갑상선종
+과잉: 갑상선기능항진증, 갑상선중독증</p></details>
+<details><summary>62. 요오드의 급원은?</summary><p>해조류, 생선, 요오드 강화소금</p></details>
+<details><summary>63. 불소의 기능은?</summary><p>충치 예방</p></details>
+<details><summary>64. 불소의 결핍증과 과잉증은?</summary><p>결핍: 치아우식
+과잉: 치아불소증, 골격불소증</p></details>
+<details><summary>65. 불소의 급원은?</summary><p>치약, 해조류, 불소화된 물</p></details>
+<details><summary>66. 셀레늄의 기능은?</summary><p>항산화작용, 비타민 E 절약작용</p></details>
+<details><summary>67. 셀레늄의 결핍증과 과잉증은?</summary><p>결핍: 근육통, 근육약화
+과잉: 구토, 탈모, 간질환</p></details>
+<details><summary>68. 셀레늄의 급원은?</summary><p>육류, 난류, 해산물, 견과류</p></details>
+<details><summary>69. &#x27;비타민 E 절약작용&#x27;을 하는 무기질은?</summary><p>셀레늄</p></details>
+<details><summary>70. 과잉 시 &#x27;혈색소증&#x27;이 생기는 무기질은?</summary><p>철분</p></details>
+<details><summary>71. 굴·새우·게가 대표 급원인 무기질은?</summary><p>아연</p></details>
+<details><summary>72. 빈혈의 정의는?</summary><p>적혈구의 양이나 수가 감소하고, 혈색소의 양·혈구의 용적이 정상보다 낮아 혈액이 묽어져 있는 상태</p></details>
+<details><summary>73. 적혈구·헤모글로빈의 역할과 부족할 때 결과는?</summary><p>신체에 산소 공급
+부족 시 산소량↓ → 빈혈</p></details>
+<details><summary>74. 철 흡수 촉진 요인 4가지는?</summary><p>헴철, 비타민 C, 위산, 저장 철분량↓</p></details>
+<details><summary>75. 철 흡수 저해 요인은?</summary><p>식물성 성분(피틴산, 식이섬유), 폴리페놀 성분(차의 탄닌), 위산 분비↓, 위장 질환, 다른 무기질↑</p></details>
+<details><summary>76. 원인에 따른 빈혈 분류 5가지는?</summary><p>① 철결핍성 빈혈
+② 거대적아구성 빈혈
+③ 혈액손실에 의한 빈혈
+④ 재생불량성 빈혈
+⑤ 용혈성 빈혈</p></details>
+<details><summary>77. 가장 흔한 빈혈은? 그 원인은?</summary><p>철결핍성 빈혈
+적혈구 생성 영양소인 철분의 부족 → 헤모글로빈 합성↓</p></details>
+<details><summary>78. 거대적아구성 빈혈의 원인은?</summary><p>비타민 B12나 엽산 결핍 → 적혈구 전구세포의 정상적인 성숙 장애</p></details>
+<details><summary>79. 혈액손실에 의한 빈혈의 원인과 회복은?</summary><p>급성출혈, 만성출혈
+수혈·적절한 공급으로 회복 가능</p></details>
+<details><summary>80. 재생불량성 빈혈의 과정은?</summary><p>선천적·후천적
+골수기능 이상 → 조혈세포 감소 → 혈구생성기능↓ → 적혈구·백혈구·혈소판↓</p></details>
+<details><summary>81. 용혈성 빈혈의 특징과 원인은?</summary><p>적혈구가 정상보다 빠르게 파괴됨
+원인: 유전적 요인, 면역반응, 비타민 E 결핍</p></details>
+<details><summary>82. 갑상선 호르몬이 많을 때 생기는 질환과 증상은?</summary><p>갑상선항진증: 신진대사↑ → 더위를 탐, 열, 체중↓</p></details>
+<details><summary>83. 갑상선 호르몬이 적을 때 생기는 질환은?</summary><p>갑상선저하증: 신진대사↓</p></details>
+<details><summary>84. 요오드 섭취가 부족하면 생기는 증상은?</summary><p>갑상선 비대, 기관지 압박, 호흡곤란, 체중↑</p></details>
+<details><summary>85. 임산부가 요오드 섭취가 부족하면?</summary><p>크레틴증 아기 출산 위험</p></details>
+<details><summary>86. 식품의 산성·알칼리성은 무엇으로 구분하나?</summary><p>연소시켰을 때 최종적으로 남는 원소</p></details>
+<details><summary>87. 알칼리성 식품을 만드는 원소와 대표 식품은?</summary><p>나트륨·칼륨·칼슘·마그네슘
+과일, 채소, 버섯, 해조류</p></details>
+<details><summary>88. 산성 식품을 만드는 원소와 대표 식품은?</summary><p>염소·인·황
+어패류, 육류, 곡류, 유지류</p></details>
+<h2>영양 · 물 (19)</h2>
+<details><summary>1. 식품 없이, 물 없이 각각 얼마나 버틸 수 있나?</summary><p>식품은 최대 8주까지 없이 생존 가능
+물은 며칠만 못 먹어도 이상이 생김</p></details>
+<details><summary>2. 인체 물의 양은 무엇과 비례하나?</summary><p>근육량</p></details>
+<details><summary>3. 근육의 몇 %가 물인가?</summary><p>76%</p></details>
+<details><summary>4. 물의 기능 ①: 신체 구성</summary><p>신체조직의 구성(근육의 76%)</p></details>
+<details><summary>5. 물의 기능 ②: 이동·용매</summary><p>영양소를 신체 곳곳에 이동
+수용성 물질의 용매 역할, 화학반응에 참가</p></details>
+<details><summary>6. 물의 기능 ③: 노폐물</summary><p>노폐물 수송, 신장을 통해 배설되게 함</p></details>
+<details><summary>7. 물의 기능 ④: 보호</summary><p>외부 충격으로부터 보호, 윤활유 역할</p></details>
+<details><summary>8. 물의 기능 ⑤⑥: 조절</summary><p>체온 유지
+전해질 농도, 산-염기 평형 유지</p></details>
+<details><summary>9. 물의 기능을 모두 말해 보자.</summary><p>신체조직 구성 / 영양소 이동 / 용매·화학반응 참가 / 노폐물 수송·배설 / 충격 보호·윤활유 / 체온 유지 / 전해질 농도·산-염기 평형 유지</p></details>
+<details><summary>10. 물의 대사에 포함되는 것은?</summary><p>수분 평형, 수분 공급, 수분 배출</p></details>
+<details><summary>11. 수분 권장량 기준은?</summary><p>소비열량 1kcal당 1ml</p></details>
+<details><summary>12. 성인이 수분이 부족하면 처음 느끼는 것은?</summary><p>갈증</p></details>
+<details><summary>13. 수분 1~2% 결핍 시 증상은?</summary><p>갈증</p></details>
+<details><summary>14. 수분 3~4% 결핍 시 증상은?</summary><p>혈류량↓, 근육 피로</p></details>
+<details><summary>15. 수분 8% 결핍 시 증상은?</summary><p>어지러움, 호흡곤란</p></details>
+<details><summary>16. 수분 10~12% 결핍 시 증상은?</summary><p>무기력증, 혈류순환 장애</p></details>
+<details><summary>17. 수분 20% 결핍 시 결과는?</summary><p>혼수상태, 사망</p></details>
+<details><summary>18. 수분 필요량이 증가하는 경우는?</summary><p>체온↑, 짠 음식, 카페인, 알코올 섭취</p></details>
+<details><summary>19. 탈수가 생기는 과정은?</summary><p>고열·설사·육체운동 → 과도한 발한 지속 → 수분 섭취 부족 → 탈수</p></details>
+<h2>영양 · 단백질 (35)</h2>
+<details><summary>1. 단백질 1g당 열량은?</summary><p>4kcal</p></details>
+<details><summary>2. 단백질의 신체 조절·유지 작용에 포함되는 것은?</summary><p>근육, 효소, 호르몬, 항체 생성, 혈액응고, 체액의 균형, 시각, 세포 손상 복구</p></details>
+<details><summary>3. 단백질 합성에 필요한 아미노산은 몇 가지인가?</summary><p>20가지</p></details>
+<details><summary>4. 필수아미노산은 몇 가지인가? 외우는 머리글자는?</summary><p>10가지
+T I L L T V P M H A</p></details>
+<details><summary>5. 필수아미노산 10가지는?</summary><p>트레오닌, 아이소류신, 라이신, 류신, 트립토판, 발린, 페닐알라닌, 메티오닌, 히스티딘, 아르기닌</p></details>
+<details><summary>6. 필수아미노산 중 어린이가 추가로 섭취해야 하는 것은?</summary><p>아르기닌</p></details>
+<details><summary>7. 필수아미노산 T·I·L·L은?</summary><p>트레오닌, 아이소류신, 라이신, 류신</p></details>
+<details><summary>8. 필수아미노산 T·V·P·M·H·A는?</summary><p>트립토판, 발린, 페닐알라닌, 메티오닌, 히스티딘, 아르기닌</p></details>
+<details><summary>9. 단백질의 체내 기능 5가지는?</summary><p>① 뼈·근육 대부분 구성
+② 수분, 산·염기 조절
+③ 효소·호르몬 합성
+④ 항체·면역세포
+⑤ 에너지 급원</p></details>
+<details><summary>10. 신체 구성 비율(물·단백질·지방·무기질)은?</summary><p>물 65%, 단백질 16%, 지방 15%, 무기질 5%</p></details>
+<details><summary>11. 성장기 어린이·임산부에게 단백질이 중요한 이유는?</summary><p>새로운 조직 형성 시기</p></details>
+<details><summary>12. 성장이 끝난 성인에게 단백질의 역할은?</summary><p>체내 단백질 교체 진행</p></details>
+<details><summary>13. 단백질이 체액의 pH를 유지하는 원리는?</summary><p>단백질은 양성물질(산·알칼리 성질 모두 가짐) → 완충작용으로 체액의 pH 유지</p></details>
+<details><summary>14. 부종을 방지하는 단백질과 그 원리는?</summary><p>알부민, 글로불린
+혈관 삼투압을 유지해 부종 방지</p></details>
+<details><summary>15. 단백질이 합성하는 효소·호르몬은?</summary><p>거의 모든 효소 합성
+갑상선 호르몬, 인슐린 같은 호르몬 합성
+→ 혈압·혈당 등 항상성 유지에 필요한 생체 조절</p></details>
+<details><summary>16. 단백질의 항체·면역세포 기능은?</summary><p>면역체계 세포, 항체의 중요 부분 구성 → 외부의 병원균 방어</p></details>
+<details><summary>17. 단백질이 에너지 급원이 되는 경우는?</summary><p>기아상태·포도당 부족 시 단백질이 포도당으로 전환되어 뇌·적혈구에 공급</p></details>
+<details><summary>18. 단백질 결핍증 2가지는?</summary><p>콰시오커, 마라스무스</p></details>
+<details><summary>19. 콰시오커: 열량과 단백질 결핍 정도는?</summary><p>열량 결핍은 보통, 단백질 결핍은 심각</p></details>
+<details><summary>20. 콰시오커가 생기는 상황은?</summary><p>모유수유에서 일반식사로의 부적절한 전환 시, 식이부족 시 초래</p></details>
+<details><summary>21. 콰시오커의 신체 특징은?</summary><p>피하지방 유지, 부종 O</p></details>
+<details><summary>22. 마라스무스: 열량과 단백질 결핍 정도는?</summary><p>둘 다 결핍 심각(기아상태)</p></details>
+<details><summary>23. 마라스무스가 생기는 상황과 결과는?</summary><p>부적절한 모유수유, 심각한 저체중 → 뇌성장 지연·감소 → 어른이 돼서도 지적성장 저하</p></details>
+<details><summary>24. 마라스무스의 신체 특징은?</summary><p>근육·피하지방 X</p></details>
+<details><summary>25. 부종이 있는 것은 콰시오커인가, 마라스무스인가?</summary><p>콰시오커</p></details>
+<details><summary>26. 단백질 과잉증 4가지는?</summary><p>① 간과 신장에 부담
+② 체중 증가
+③ 대장암
+④ 골다공증</p></details>
+<details><summary>27. 단백질 과잉이 간·신장에 부담을 주는 이유는?</summary><p>고단백질 위주의 식사 장기간 지속 → 잉여 질소 처리 → 부담</p></details>
+<details><summary>28. 단백질 과잉이 체중 증가를 일으키는 이유는?</summary><p>체내에서 지방으로 전환</p></details>
+<details><summary>29. 단백질 과잉이 골다공증을 일으키는 이유는?</summary><p>소변 내 칼슘 증가로 초래</p></details>
+<details><summary>30. 완전단백질이란?</summary><p>제한 아미노산 X, 모든 필수아미노산 포함
+동물성</p></details>
+<details><summary>31. 불완전단백질이란?</summary><p>한 가지 이상의 제한 아미노산
+식물성</p></details>
+<details><summary>32. 불완전단백질의 단점을 보완하는 방법은?</summary><p>혼합식이로 영양 균형</p></details>
+<details><summary>33. 단백질 1일 섭취 권장량은?</summary><p>체중 1kg당 1g</p></details>
+<details><summary>34. 단백질은 총에너지 섭취량의 몇 %가 적당한가?</summary><p>10~20%</p></details>
+<details><summary>35. 단백질 중 동물성은 어느 정도가 좋은가?</summary><p>1/3 이상 동물성으로
+(필요시 단백질 필요량↑)</p></details>
+<h2>영양 · 비타민 (64)</h2>
+<details><summary>1. 비타민의 일반적 특징은?</summary><p>식품에 소량 함유, 조절소
+반드시 섭취해야 함
+조효소로 작용</p></details>
+<details><summary>2. 지용성 비타민의 종류는?</summary><p>비타민 A, D, E, K</p></details>
+<details><summary>3. 지용성 비타민의 특징은?</summary><p>지방에 녹음 / 지방조직에 저장 / 과량 섭취 시 독성 / 매일 공급할 필요 X / 상한섭취량 존재</p></details>
+<details><summary>4. 수용성 비타민의 종류는?</summary><p>비타민 C, B군</p></details>
+<details><summary>5. 수용성 비타민의 특징은?</summary><p>물에 녹음 / 저장 X, 소변으로 배출 / 매일 필요량 공급해야 함</p></details>
+<details><summary>6. 비타민 A의 두 형태는?</summary><p>레티놀, 카로티노이드</p></details>
+<details><summary>7. 레티놀의 급원은?</summary><p>간, 생선, 버터</p></details>
+<details><summary>8. 카로티노이드의 급원은?</summary><p>주황·녹황색 채소, 과일</p></details>
+<details><summary>9. 비타민 A는 어디에서 대사·저장되나?</summary><p>간에서 대사 (90% 이상 간에 저장)</p></details>
+<details><summary>10. 비타민 A의 기능은?</summary><p>시각기능(로돕신 생성에 필요) / 상피세포 유지 / 면역 / 항산화·항암 / 세포분화(배아단계)</p></details>
+<details><summary>11. 비타민 A의 시각기능이란?</summary><p>로돕신 생성에 필요</p></details>
+<details><summary>12. 비타민 A 결핍증은?</summary><p>야맹증, 안구건조증, 감염률↑, 성장장애</p></details>
+<details><summary>13. 결핍 시 야맹증이 생기는 비타민은?</summary><p>비타민 A</p></details>
+<details><summary>14. 햇빛을 통해 합성할 수 있는 비타민은?</summary><p>비타민 D</p></details>
+<details><summary>15. 비타민 D2의 전구체와 급원은?</summary><p>에르고스테롤
+급원: 버섯, 효모, 시리얼</p></details>
+<details><summary>16. 비타민 D3의 전구체와 급원은?</summary><p>7-디하이드로콜레스테롤
+급원: 연어, 정어리, 참치, 달걀, 간</p></details>
+<details><summary>17. 비타민 D의 기능은?</summary><p>칼슘의 항상성 유지(뼈의 대사·구조 유지에 도움)
+세포·신경 기능 유지
+일부 세포의 증식·분화 조절</p></details>
+<details><summary>18. 비타민 D 결핍증은?</summary><p>구루병, 골다공증, 골연화증</p></details>
+<details><summary>19. 결핍 시 구루병이 생기는 비타민은?</summary><p>비타민 D</p></details>
+<details><summary>20. 비타민 E의 활성 형태는?</summary><p>α-토코페롤</p></details>
+<details><summary>21. 비타민 E는 동물과 사람에게 각각 어떤 작용을 하나?</summary><p>동물 = 항불임작용
+사람 = 항산화작용</p></details>
+<details><summary>22. 비타민 E의 급원은?</summary><p>식물성기름, 곡류의 배아, 종자류, 견과류</p></details>
+<details><summary>23. 비타민 E의 기능은?</summary><p>항산화작용, 노화방지, 빈혈방지</p></details>
+<details><summary>24. 비타민 E 결핍증은?</summary><p>용혈성 빈혈</p></details>
+<details><summary>25. 비타민 E 과잉증은?</summary><p>출혈 위험, 근육쇠약, 피로</p></details>
+<details><summary>26. 비타민 K의 주요 기능은?</summary><p>혈액응고, 골격 형성</p></details>
+<details><summary>27. 비타민 K의 급원과 합성은?</summary><p>간, 푸른잎 채소, 브로콜리
+장내 미생물에 의해 합성</p></details>
+<details><summary>28. 비타민 K가 관여하는 혈액응고 과정은?</summary><p>프로트롬빈 → (비타민 K) 트롬빈 → 피브리노겐 → 피브린 → 혈액응고</p></details>
+<details><summary>29. 비타민 K와 골격 형성의 관계는?</summary><p>오스테오칼신의 합성에 관여해 골격 형성</p></details>
+<details><summary>30. 비타민 K 농도가 낮으면?</summary><p>뼈 무기질↓ → 쉽게 골절</p></details>
+<details><summary>31. 장내 미생물에 의해 합성되는 비타민은?</summary><p>비타민 K</p></details>
+<details><summary>32. 비타민 B군 8가지는?</summary><p>티아민 B1, 리보플라빈 B2, 나이아신 B3, 피리독신 B6, 판토텐산, 코발라민 B12, 엽산 B9, 비오틴</p></details>
+<details><summary>33. 비타민 B1, B2, B3의 이름은?</summary><p>B1 티아민, B2 리보플라빈, B3 나이아신</p></details>
+<details><summary>34. 비타민 B6, B9, B12의 이름은?</summary><p>B6 피리독신, B9 엽산, B12 코발라민</p></details>
+<details><summary>35. 티아민의 기능은?</summary><p>에너지 대사과정에 관여
+열량 섭취↑ → 필요량↑</p></details>
+<details><summary>36. 티아민의 급원은?</summary><p>돼지고기, 전곡류, 배아</p></details>
+<details><summary>37. 티아민 결핍증은?</summary><p>각기병(건성 각기병, 습성 각기병)</p></details>
+<details><summary>38. 건성 각기병의 증상은?</summary><p>체중감소, 무기력증, 단기기억 상실, 말초신경 무감각, 근육약화</p></details>
+<details><summary>39. 습성 각기병의 증상은?</summary><p>심장기능 저하, 부종, 호흡곤란</p></details>
+<details><summary>40. 티아민이 결핍되기 쉬운 경우는?</summary><p>백미 위주 식사, 알코올 중독</p></details>
+<details><summary>41. 리보플라빈의 기능은?</summary><p>에너지 대사과정에 관여
+성장, 건강한 피부, 시력</p></details>
+<details><summary>42. 리보플라빈의 급원은?</summary><p>간, 버섯, 녹색채소</p></details>
+<details><summary>43. 리보플라빈 결핍증은?</summary><p>구순구각염, 지루성 피부염, 눈과 신경계 장애</p></details>
+<details><summary>44. 결핍 시 구순구각염이 생기는 비타민은?</summary><p>리보플라빈(B2)</p></details>
+<details><summary>45. 나이아신의 기능과 급원은?</summary><p>에너지 대사과정에 필요
+급원: 육류, 가금류, 생선, 달걀, 우유 등 동물성 식품</p></details>
+<details><summary>46. 나이아신 결핍증은?</summary><p>펠라그라</p></details>
+<details><summary>47. 펠라그라는 어디에서 발병하며, 그 이유는?</summary><p>옥수수가 주식인 곳
+옥수수의 제한아미노산이 트립토판이기 때문</p></details>
+<details><summary>48. 펠라그라의 증상은?</summary><p>설사, 피부염, 정신혼란</p></details>
+<details><summary>49. 엽산의 기능은?</summary><p>핵산 합성, 세포분열, 적혈구 생성</p></details>
+<details><summary>50. 엽산의 급원은?</summary><p>녹색잎 채소, 간, 곡류, 두류</p></details>
+<details><summary>51. 엽산 결핍증은?</summary><p>거대적아구성 빈혈</p></details>
+<details><summary>52. 임신기에 엽산이 결핍되면?</summary><p>무뇌아, 신경관결손증 발생 가능</p></details>
+<details><summary>53. 코발라민의 기능은?</summary><p>핵산 합성, 세포분열, 적혈구 형성</p></details>
+<details><summary>54. 코발라민의 급원은?</summary><p>어육류, 달걀, 우유 등 동물성</p></details>
+<details><summary>55. 코발라민 결핍증은?</summary><p>악성빈혈, 신경장애</p></details>
+<details><summary>56. 코발라민이 결핍되기 쉬운 이유는?</summary><p>채식, 노인기의 위축성 위염, 위·장 질환으로 인한 흡수 불량</p></details>
+<details><summary>57. 엽산과 코발라민의 공통 기능은?</summary><p>핵산 합성, 세포분열, 적혈구 생성(형성)</p></details>
+<details><summary>58. 비타민 C의 환원형과 산화형은?</summary><p>환원형: 아스코르브산
+산화형: 디하이드로아스코르브산</p></details>
+<details><summary>59. 비타민 C는 어떻게 섭취하며, 식품에는 어떤 형태로 있나?</summary><p>사람은 식품으로 섭취
+식품에 산화형·환원형 모두 존재</p></details>
+<details><summary>60. 비타민 C의 기능 4가지는?</summary><p>항산화작용(유리라디칼 제거하여 세포 보호), 콜라겐 합성, 철 흡수 촉진, 면역작용</p></details>
+<details><summary>61. 비타민 C 결핍증은?</summary><p>괴혈병, 정상적 콜라겐 합성 X, 상처 치유 지연</p></details>
+<details><summary>62. 비타민 C의 상한섭취량과 성인 권장섭취량은?</summary><p>상한섭취량: 2,000mg
+성인 권장섭취량: 1일 100mg</p></details>
+<details><summary>63. 비타민 C의 급원은?</summary><p>모든 과일, 채소</p></details>
+<details><summary>64. 비타민 C가 조리 중 쉽게 파괴되는 이유는?</summary><p>가열, 철, 금속, 산소에 불안정</p></details>
+<h2>영양 · 지질 (46)</h2>
+<details><summary>1. 지질 1g당 열량은?</summary><p>9kcal</p></details>
+<details><summary>2. 지질의 일반적 특징은?</summary><p>물에 녹지 않고 유기용매에 녹음
+동식물이 체내에 여분의 에너지를 저장</p></details>
+<details><summary>3. 중성지방의 구성은?</summary><p>지방산 + 글리세롤</p></details>
+<details><summary>4. 인지질의 구성은?</summary><p>중성지방 + 인산</p></details>
+<details><summary>5. 지질의 종류 3가지는?</summary><p>중성지방, 인지질, 스테롤류</p></details>
+<details><summary>6. 지방산의 정의는?</summary><p>탄소를 중심으로 수소가 결합된 탄소사슬</p></details>
+<details><summary>7. 탄소 길이에 따른 지방산 분류는?</summary><p>짧은사슬 지방산, 중간사슬 지방산, 긴사슬 지방산</p></details>
+<details><summary>8. 이중결합 수에 따른 지방산 분류는?</summary><p>포화지방산, 단일불포화지방산, 다중불포화지방산</p></details>
+<details><summary>9. 이중결합 위치에 따른 지방산 분류는?</summary><p>오메가-3, 오메가-6, 오메가-9</p></details>
+<details><summary>10. 포화지방산의 구조는?</summary><p>단일결합으로만 이루어져 수소결합이 포화(= 고체)</p></details>
+<details><summary>11. 포화지방산은 어떤 식품에 있고, 콜레스테롤에 어떤 영향을 주나?</summary><p>동물성 식품에 존재
+총콜레스테롤, LDL-콜레스테롤↑</p></details>
+<details><summary>12. 불포화지방산의 구조와 상태는?</summary><p>1개 이상의 이중결합 → 액체</p></details>
+<details><summary>13. 불포화지방산은 어떤 식품에 있고, 건강에 어떤 영향을 주나?</summary><p>식물성 식품에 함유
+LDL 콜레스테롤↓, 콜레스테롤 개선, 염증 완화, 심장 건강</p></details>
+<details><summary>14. 트랜스지방산의 특징은?</summary><p>경화유, 고체
+LDL-콜레스테롤↑, HDL-콜레스테롤↓
+포화지방산보다 해로움, 가격 저렴</p></details>
+<details><summary>15. 트랜스지방이 만들어지는 과정은?</summary><p>액체 상태인 식물성 지질에 수소 첨가 → 포화도↑ → 고체 상태</p></details>
+<details><summary>16. 시스지방산이 트랜스지방산으로 바뀌는 과정 이름은?</summary><p>가수소화 과정</p></details>
+<details><summary>17. 트랜스지방의 1일 섭취 제한량은?</summary><p>2g</p></details>
+<details><summary>18. LDL은 올리고 HDL은 낮추는 지방산은?</summary><p>트랜스지방산</p></details>
+<details><summary>19. 필수지방산 3가지는?</summary><p>리놀레산, 리놀렌산, 아라키돈산</p></details>
+<details><summary>20. 필수지방산의 정의는?</summary><p>매일 일정량 섭취가 필요한 지방산</p></details>
+<details><summary>21. 필수지방산의 기능 4가지는?</summary><p>① 세포막의 유동성·유연성·투과성 유지
+② 혈청 콜레스테롤↓
+③ 두뇌발달·시각기능 유지(ω3계)
+④ 아이코사노이드의 전구체</p></details>
+<details><summary>22. 두뇌발달·시각기능 유지에 관여하는 지방산 계열은?</summary><p>ω3계(오메가-3)</p></details>
+<details><summary>23. 중성지방의 구조는?</summary><p>글리세롤 1개 + 지방산 3개</p></details>
+<details><summary>24. 중성지방은 몸 저장지질의 몇 %를 차지하나?</summary><p>95% (가장 흔한 지질)</p></details>
+<details><summary>25. 중성지방의 기능은?</summary><p>에너지 제공·저장, 신체 보호·체온 유지, 지용성 비타민의 운반체</p></details>
+<details><summary>26. 인지질의 특징은?</summary><p>세포막의 주요 구성
+뇌와 신경조직에 많음</p></details>
+<details><summary>27. 인지질의 종류는?</summary><p>포스파티딜콜린(레시틴), 포스파티딜에탄올아민, 포스파티딜세린</p></details>
+<details><summary>28. 대표적인 인지질과 그 급원은?</summary><p>레시틴
+간, 콩, 노른자</p></details>
+<details><summary>29. 레시틴의 쓰임과 건강 효과는?</summary><p>유화제로 이용
+체내 유화작용으로 콜레스테롤 분해·배설 → 동맥경화, 뇌졸중 예방에 도움</p></details>
+<details><summary>30. 콜레스테롤은 간에서 하루 얼마나 생성되나?</summary><p>800mg</p></details>
+<details><summary>31. 간에서 만든 콜레스테롤은 어디에 쓰이나?</summary><p>400mg = 담즙산
+50mg = 스테로이드 호르몬</p></details>
+<details><summary>32. 콜레스테롤의 급원은?</summary><p>우유, 달걀, 버터</p></details>
+<details><summary>33. 콜레스테롤의 기능 5가지는?</summary><p>세포막의 구성성분, 뇌조직(미엘린)의 구성성분, 스테로이드 호르몬의 전구체, 담즙산의 성분, 비타민 D의 전구체</p></details>
+<details><summary>34. 지질의 체내 기능 ①②는?</summary><p>① 에너지 제공
+② 체온 유지, 신체 보호</p></details>
+<details><summary>35. 지질의 &#x27;효율적인 에너지 저장&#x27; 기능이란?</summary><p>중성지방 형태로 열량 저장</p></details>
+<details><summary>36. 필수지방산이 부족하면?</summary><p>각질, 가려움, 상처회복 지연, 빈혈 등</p></details>
+<details><summary>37. 지질이 흡수를 촉진하는 영양소는?</summary><p>지용성 비타민</p></details>
+<details><summary>38. 세포·뇌·신경조직의 구성성분으로서 인지질과 콜레스테롤의 역할은?</summary><p>인지질 = 세포막, 뇌조직, 신경조직
+콜레스테롤 = 호르몬, 담즙산의 전구체</p></details>
+<details><summary>39. 지질이 포만감을 주는 이유는?</summary><p>위장통과 시간↑
+(맛, 향미, 포만감 제공)</p></details>
+<details><summary>40. 고지혈증의 정의는?</summary><p>혈액 중 콜레스테롤·중성지방 등 지질 농도↑</p></details>
+<details><summary>41. 서양인과 동양인에게 흔한 고지혈증 유형과 원인은?</summary><p>서양인: 고콜레스테롤혈증(동물성 식품 섭취)
+동양인: 고중성지방혈증(과다한 당질이 중성지방으로)</p></details>
+<details><summary>42. 동맥경화가 생기는 과정은?</summary><p>혈액 중 지질 덩어리가 동맥벽에 쌓여 플라크 형성 → 내경 축소 → 동맥경화</p></details>
+<details><summary>43. 동맥경화가 악화되면 생기는 질환은?</summary><p>심근경색, 뇌출혈, 뇌졸중</p></details>
+<details><summary>44. 1~2세의 지질 섭취 권장 비율은?</summary><p>총에너지의 20~35%</p></details>
+<details><summary>45. 3세 이상의 지질 섭취 권장 비율은?</summary><p>총에너지의 15~30%</p></details>
+<details><summary>46. 필수지방산은 총에너지 섭취량의 몇 %로 섭취하나?</summary><p>1~2%</p></details>
+<h2>영양 · 탄수화물 (51)</h2>
+<details><summary>1. 전분은 입에서 무엇으로 분해되나?</summary><p>덱스트린, 맥아당</p></details>
+<details><summary>2. 전분 소화의 최종 산물과 흡수 장소는?</summary><p>포도당, 소장</p></details>
+<details><summary>3. 단백질의 소화 과정은?</summary><p>단백질 → (위) 짧은 단백질 → (소장) 아미노산</p></details>
+<details><summary>4. 지방의 소화 최종 산물은?</summary><p>모노아실글리세롤, 지방산</p></details>
+<details><summary>5. 식이섬유는 소화관에서 어떻게 되나?</summary><p>분해되지 않고 식이섬유 그대로 대장까지 이동</p></details>
+<details><summary>6. 탄수화물의 다른 이름과 기본 특징은?</summary><p>탄수화물 = 당질
+체내에서 가장 기본적인 영양소, 에너지 급원
+소화가 쉽고 독성 X</p></details>
+<details><summary>7. 포도당은 어떻게 합성되고 어떤 형태로 저장되나?</summary><p>광합성에 의해 합성되어 전분·섬유소 형태로 저장</p></details>
+<details><summary>8. 단당류 3가지는?</summary><p>포도당, 과당, 갈락토스</p></details>
+<details><summary>9. 포도당의 특징은?</summary><p>식물에 존재, 전분 소화로 생성, 혈당</p></details>
+<details><summary>10. 과당의 특징은?</summary><p>과일에 존재, 단맛↑
+청량음료, 고과당 콘시럽</p></details>
+<details><summary>11. 갈락토스의 특징은?</summary><p>유제품, 뇌와 신경 형성, 단맛↓</p></details>
+<details><summary>12. 단맛이 가장 강한 단당류와 약한 단당류는?</summary><p>강함: 과당
+약함: 갈락토스</p></details>
+<details><summary>13. 이당류 3가지는?</summary><p>서당, 맥아당, 유당</p></details>
+<details><summary>14. 서당의 구성과 급원은?</summary><p>포도당 + 과당
+사탕수수</p></details>
+<details><summary>15. 맥아당의 구성과 급원은?</summary><p>포도당 + 포도당
+전분의 가수분해, 곡류</p></details>
+<details><summary>16. 유당의 구성과 급원은?</summary><p>포도당 + 갈락토스
+유즙</p></details>
+<details><summary>17. 올리고당의 정의는?</summary><p>3~10개의 단당류로 이루어진 당류</p></details>
+<details><summary>18. 올리고당의 감미료로서 특징은?</summary><p>설탕과 비슷한 단맛을 가진 저에너지 감미료</p></details>
+<details><summary>19. 올리고당이 장 건강에 좋은 이유는?</summary><p>사람의 소화효소로 분해 X → 대장 내 유익한 비피도박테리아 → 장 건강 유지</p></details>
+<details><summary>20. 올리고당이 흡수를 높이는 무기질은?</summary><p>칼슘, 마그네슘</p></details>
+<details><summary>21. 올리고당의 종류 3가지는?</summary><p>프락토올리고당, 이소말토올리고당, 갈락토스올리고당</p></details>
+<details><summary>22. 다당류 3가지는?</summary><p>전분, 식이섬유소, 글리코겐</p></details>
+<details><summary>23. 전분의 특징은?</summary><p>식물의 저장물질, 포도당의 중합체
+아밀로스, 아밀로펙틴</p></details>
+<details><summary>24. 찹쌀 전분의 구성은?</summary><p>아밀로펙틴으로만 구성</p></details>
+<details><summary>25. 멥쌀 전분의 구성 비율은?</summary><p>아밀로스 : 아밀로펙틴 = 1 : 4</p></details>
+<details><summary>26. 식이섬유소의 종류는?</summary><p>셀룰로스, 헤미셀룰로스, 펙틴, 리그닌, 검류</p></details>
+<details><summary>27. 식이섬유소가 많은 식품은?</summary><p>도정하지 않은 곡류, 채소</p></details>
+<details><summary>28. 사람은 식이섬유를 소화할 수 있나?</summary><p>인간 소화효소에 의해 분해 X</p></details>
+<details><summary>29. 소 같은 반추동물이 풀을 에너지로 쓸 수 있는 이유는?</summary><p>위에 식이섬유 분해효소인 셀룰레이스가 존재 → 풀(셀룰로스)을 에너지로 사용</p></details>
+<details><summary>30. 글리코겐은 어디에 있는 다당류인가?</summary><p>인체·동물의 간, 근육에 있는 저장형 다당류 (동물성 전분)</p></details>
+<details><summary>31. 글리코겐의 기능은?</summary><p>혈당 조절, 근육에 에너지 공급</p></details>
+<details><summary>32. 글리코겐과 구조가 비슷한 것은? 차이는?</summary><p>아밀로펙틴과 구조 유사
+글리코겐이 가지 수↑</p></details>
+<details><summary>33. 탄수화물의 체내 기능 6가지는?</summary><p>① 에너지 공급
+② 에너지 저장, 혈당 유지
+③ 체단백질 보호
+④ 케톤증 방지
+⑤ 음식에 단맛·향미 제공
+⑥ 변비 예방</p></details>
+<details><summary>34. 탄수화물은 섭취 에너지의 몇 %를 차지하나?</summary><p>60~70%</p></details>
+<details><summary>35. 포도당을 주요 에너지원으로 쓰는 기관은?</summary><p>뇌, 적혈구</p></details>
+<details><summary>36. 사용 후 남은 포도당은 어떻게 되나?</summary><p>글리코겐 형태로 저장 → 공복 시 분해되어 혈당 유지</p></details>
+<details><summary>37. 글리코겐이 충분할 때 남는 포도당은?</summary><p>지방조직에 저장</p></details>
+<details><summary>38. 탄수화물이 부족하면 체단백질은 어떻게 되나?</summary><p>단백질 우선 분해 → 포도당 생성 → 에너지원 이용</p></details>
+<details><summary>39. 케톤증이 생기는 이유는?</summary><p>탄수화물을 적게 섭취 → 지방이 분해될 때 완전히 산화 X → 케톤체 생성</p></details>
+<details><summary>40. 케톤증 방지를 위한 탄수화물 최소 섭취량은?</summary><p>50~100g</p></details>
+<details><summary>41. 탄수화물이 변비를 예방하는 원리는?</summary><p>식이섬유 섭취 → 장내 대변량↑</p></details>
+<details><summary>42. 당뇨병의 정의는?</summary><p>다식·다뇨·다갈의 증상이 나타나는 만성질환</p></details>
+<details><summary>43. 탄수화물이 세포로 들어가기까지의 과정은?</summary><p>탄수화물 섭취 → 소화 → 포도당으로 분해 → 혈액으로 유입 → 인슐린 → 세포 내로 이동</p></details>
+<details><summary>44. 인슐린이 부족하면?</summary><p>고혈당 → 소변으로 당 배설</p></details>
+<details><summary>45. 당뇨 진단 기준 혈당은?</summary><p>공복: 126 이상
+식사 후: 200 이상</p></details>
+<details><summary>46. 유당불내증이 생기는 과정은?</summary><p>유당 분해효소 부족 → 소장에서 소화되지 못한 유당 → 대장으로 이동 → 박테리아에 의해 발효</p></details>
+<details><summary>47. 충치가 생기는 과정은?</summary><p>플라그 생성하는 구강세균 → 설탕·전분 분해 → 산 생성 → 에나멜질 공격 → 충치</p></details>
+<details><summary>48. 충치 예방에 도움이 되는 감미료는?</summary><p>자일리톨</p></details>
+<details><summary>49. 하루 당 섭취 권고량은?</summary><p>50g 이내 (각설탕 12.5개)</p></details>
+<details><summary>50. 밥 1공기에 든 탄수화물 양은?</summary><p>70g</p></details>
+<details><summary>51. 영양감미료와 합성감미료의 차이는?</summary><p>영양감미료: 열량 제공
+합성감미료: 열량 제공 X</p></details>
+<h2>영양 · 식생활과 건강 (53)</h2>
+<details><summary>1. WHO의 건강 정의는?</summary><p>육체적·정신적·사회적으로 완전히 양호한 상태</p></details>
+<details><summary>2. 건강 결정 주요인 4가지와 비율은?</summary><p>생활습관 50%, 환경 20%, 생물학적 20%, 보건의료 10%</p></details>
+<details><summary>3. 건강 결정 요인 중 가장 비중이 큰 것은?</summary><p>생활습관(50%)</p></details>
+<details><summary>4. 현대인을 &#x27;반건강인&#x27;으로 만드는 원인은?</summary><p>잘못된 식생활, 스트레스, 과중한 업무, 환경오염</p></details>
+<details><summary>5. 반건강인이 환자 또는 건강인이 되는 갈림길은?</summary><p>흡연·잘못된 식생활 → 환자
+올바른 식생활·금연 → 건강인</p></details>
+<details><summary>6. 영양소의 세 가지 역할은?</summary><p>열량소: 에너지 공급
+조절소: 신체기능 조절
+구성소: 신체 구성성분</p></details>
+<details><summary>7. 에너지 공급을 담당하는 영양소는? (노트 그림 기준)</summary><p>탄수화물 (+ 단백질, 지질)</p></details>
+<details><summary>8. 성장과 조직의 유지를 담당하는 영양소는?</summary><p>물, 무기질 (+ 단백질, 지질)</p></details>
+<details><summary>9. 대사과정의 조절을 담당하는 영양소는?</summary><p>비타민, 무기질 (+ 단백질, 지질)</p></details>
+<details><summary>10. 세 가지 역할에 모두 관여하는 영양소는?</summary><p>단백질, 지질</p></details>
+<details><summary>11. 기대수명이란? (수치 포함)</summary><p>환경 개선과 의료서비스로 연장된 수명
+83.4세</p></details>
+<details><summary>12. 건강수명이란? (수치 포함)</summary><p>질병·장애에 의한 제약 없이 건강하게 살 것으로 기대되는 기간
+73.1세</p></details>
+<details><summary>13. 만성질환의 예는?</summary><p>비만, 고혈압, 당뇨병, 이상지질혈증, 암</p></details>
+<details><summary>14. 만성질환의 특징은?</summary><p>단기간 치료 X
+장기간, 죽을 때까지</p></details>
+<details><summary>15. 만성질환이 생기는 단계는?</summary><p>안 좋은 생활습관 → 선행단계 → 만성질환</p></details>
+<details><summary>16. 급격한 생활환경 변화가 영양상태에 준 영향은?</summary><p>영양상태를 전반적으로 개선했지만 영양불균형에 의한 만성질환↑</p></details>
+<details><summary>17. 영양불균형에 의한 만성질환 3가지는?</summary><p>① 본태성 고혈압
+② 만성 신장질환
+③ 인슐린-비의존성 당뇨</p></details>
+<details><summary>18. 비만·당뇨·고콜레스테롤혈증은 어떤 질환의 선행질환인가?</summary><p>심혈관 질환
+→ 연령↑ 유병률↑</p></details>
+<details><summary>19. 악성신생물(암)의 사망률 순위와 정의는?</summary><p>사망률 1위
+비정상 세포가 억제되지 않고 증식</p></details>
+<details><summary>20. 암의 요인은?</summary><p>짠 음식 섭취↑, 알코올, 흡연 등</p></details>
+<details><summary>21. 만성질환의 주요 식생활 원인은?</summary><p>지방 섭취 과다
+식이섬유·채소·과일 섭취 부족</p></details>
+<details><summary>22. 건강한 식생활 실천 3가지는?</summary><p>균형식, 다양한 식품, 적절한 양 섭취</p></details>
+<details><summary>23. ABCDE는 각각 무엇인가?</summary><p>A 충분 / B 균형 / C 에너지 조절 / D 다양 / E 운동</p></details>
+<details><summary>24. 식품구성자전거의 의미는?</summary><p>균형식의 의미 제공
+면적 = 권장섭취횟수</p></details>
+<details><summary>25. 식품구성자전거 2015 제정에서 바뀐 점은?</summary><p>유지·당류를 제외해 5가지로</p></details>
+<details><summary>26. 6가지 기초식품군은?</summary><p>곡류 / 고기·생선·달걀·콩 / 채소·과일 / 우유·유제품 / 유지·당류 / 수분</p></details>
+<details><summary>27. 한국인 영양소 섭취기준의 개정 주기는?</summary><p>5년 단위로 재·제정</p></details>
+<details><summary>28. 2025 한국인 영양소 섭취기준의 영양소 수와 구성은?</summary><p>총 41종
+에너지·다량영양소 12종, 비타민 13종, 콜린, 무기질 15종</p></details>
+<details><summary>29. 2025 한국인 영양소 섭취기준의 목적은?</summary><p>안전하고 충분한 영양을 확보하는 기준 제시</p></details>
+<details><summary>30. 평균필요량(EAR)의 산출 방식은?</summary><p>건강한 사람들의 영양소 필요량 중앙값에서 산출
+(필요량에 대한 과학적 근거가 있어야)</p></details>
+<details><summary>31. 평균필요량(EAR)은 인구집단의 몇 %의 필요량을 충족하나?</summary><p>50%</p></details>
+<details><summary>32. 권장섭취량(RNI)은 인구집단의 몇 %의 필요량을 충족하나?</summary><p>약 97~98%</p></details>
+<details><summary>33. 권장섭취량(RNI)은 어떻게 계산하나?</summary><p>평균필요량에 2배의 표준편차를 더한 값</p></details>
+<details><summary>34. 충분섭취량(AI)이란?</summary><p>건강을 유지하는 데 충분한 양을 설정
+근거 부족 시 건강한 사람들의 영양소 섭취량 중앙값을 기준</p></details>
+<details><summary>35. 상한섭취량(UL)이란?</summary><p>유해한 영향이 없는 최대 섭취 기준
+과량 섭취의 유해 영향에 대한 과학적 근거가 있어야</p></details>
+<details><summary>36. EAR, RNI, AI, UL의 우리말 이름은?</summary><p>EAR 평균필요량
+RNI 권장섭취량
+AI 충분섭취량
+UL 상한섭취량</p></details>
+<details><summary>37. 식사구성안의 정의는?</summary><p>일반인에게 영양 섭취기준에 만족할 식사를 제공하도록 식품군별 대표식품과 섭취횟수를 이용해 식사의 기본 구성 개념을 설명</p></details>
+<details><summary>38. 식사구성안의 탄수화물·단백질·지방 비율은?</summary><p>탄수화물 50~65%
+단백질 10~20%
+지방 15~30% (1~2세: 20~35%)</p></details>
+<details><summary>39. 영양표시제의 목적은?</summary><p>소비자가 영양적 가치 있는 가공식품을 선택하게 식품 표시 의무화</p></details>
+<details><summary>40. 영양표시 항목은?</summary><p>탄수화물, 단백질, 지방, 포화지방, 트랜스지방, 콜레스테롤, 나트륨, 당류, 열량</p></details>
+<details><summary>41. 영양 강조표시에 쓰는 표현은?</summary><p>&#x27;무-&#x27;, &#x27;저-&#x27;, &#x27;고-&#x27;, &#x27;-함유&#x27;
+&#x27;덜&#x27;, &#x27;더&#x27;, &#x27;강화&#x27;, &#x27;첨가&#x27;</p></details>
+<details><summary>42. 열량 &#x27;저&#x27; 기준은?</summary><p>100g당 40kcal / 100ml당 20kcal 미만</p></details>
+<details><summary>43. 열량 &#x27;무&#x27; 기준은?</summary><p>100g당 4kcal 미만</p></details>
+<details><summary>44. 나트륨 &#x27;저&#x27; 기준은?</summary><p>100g당 120mg 미만</p></details>
+<details><summary>45. 나트륨 &#x27;무&#x27; 기준은?</summary><p>100g당 5mg 미만</p></details>
+<details><summary>46. 당 &#x27;무&#x27; 기준은?</summary><p>100g당 0.5g 미만</p></details>
+<details><summary>47. 지방 &#x27;저&#x27; 기준은?</summary><p>100g당 3g / 100ml당 1.5g 미만</p></details>
+<details><summary>48. 지방 &#x27;무&#x27; 기준은?</summary><p>100g당 0.5g 미만</p></details>
+<details><summary>49. 트랜스지방 &#x27;저&#x27; 기준은?</summary><p>100g당 0.5g 미만</p></details>
+<details><summary>50. 포화지방 &#x27;저&#x27; 기준은?</summary><p>100g당 1.5g 미만, 열량의 10% 이하</p></details>
+<details><summary>51. 포화지방 &#x27;무&#x27; 기준은?</summary><p>100g당 0.1g 미만</p></details>
+<details><summary>52. 영양소 밀도의 공식은?</summary><p>영양소 밀도 = 영양소 함량 ÷ 공급 에너지</p></details>
+<details><summary>53. 영양소 밀도는 무엇에 쓰이나?</summary><p>식품의 영양소 가치 비교</p></details>
+<h2>의사소통 · 대인간 의사소통 개관 (52)</h2>
+<details><summary>1. 의사소통 교류의 박탈은 어떤 결과를 가져오나?</summary><p>삶 전체에 영향</p></details>
+<details><summary>2. 독일 황제 프리드리히 2세의 실험 내용은?</summary><p>각국이 서로 다른 언어를 쓰는 상황에서, 아기들이 아무런 교육 없이 어떤 언어를 쓰는지 실험</p></details>
+<details><summary>3. 탐험가 Carl Jackson의 51일 대서양 횡단 사례가 보여 주는 것은?</summary><p>외로움 때문에 둘째 달부터 괴로움
+→ 우리 모두 관계와 의사소통을 필요로 함</p></details>
+<details><summary>4. 의사소통 욕구 4가지는?</summary><p>① 신체적 욕구
+② 정체성 욕구
+③ 사회적 욕구
+④ 현실적 목표</p></details>
+<details><summary>5. 사회적 관계가 결여되면 수명은 얼마나 줄어드나?</summary><p>3.7년</p></details>
+<details><summary>6. 사회적 관계 결여가 신체에 미치는 영향은?</summary><p>수명 3.7년↓, 관상동맥 건강 위협, 감기 확률 4배↑</p></details>
+<details><summary>7. 이별한 사람들의 정신적 질병 확률은?</summary><p>5~10배↑</p></details>
+<details><summary>8. 혼자 사는 사람에게 높아지는 위험은?</summary><p>폐렴, 암 발생률, 외과수술 확률↑</p></details>
+<details><summary>9. 매일 10분 사교관계를 형성하면?</summary><p>기억력, 지적능력↑</p></details>
+<details><summary>10. 긍정적 관계 형성의 효과 3가지는?</summary><p>매일 10분 사교 → 기억력·지적능력↑
+타인과의 대화 → 외로움과 수반 질환↓
+애정 표현을 많이 들을수록 스트레스↓</p></details>
+<details><summary>11. 개인적 관계에서 &#x27;질&#x27;과 &#x27;양&#x27;의 관계는?</summary><p>모든 사람이 동일한 양의 접촉을 필요로 하지 않음
+질이 양만큼 중요, 행복에 필수적</p></details>
+<details><summary>12. 정체성 욕구란?</summary><p>의사소통은 우리가 누구인지 배우는 유일한 방법
+타인의 반응에 근거해 우리가 누군지 결정
+타인과 의사소통 박탈 → 인식 X</p></details>
+<details><summary>13. 정체성 욕구의 대표 사례는?</summary><p>프랑스 아베이롱 지역의 야생소년</p></details>
+<details><summary>14. 메시지의 영향력이 가장 강한 시기는?</summary><p>어릴 때 (타인의 영향력은 평생)</p></details>
+<details><summary>15. 사회적 욕구란?</summary><p>의사소통을 통해 쾌락, 애정, 동료애, 도피, 휴식 등 다양한 사회적 욕구 충족</p></details>
+<details><summary>16. 교육수준과 관계망의 관계는?</summary><p>교육수준↑ → 폭넓고 다양한 관계망, 관계적 삶의 수준↑</p></details>
+<details><summary>17. 현실적 목표(도구적 목표)란?</summary><p>의사소통은 타인이 우리가 원하는 방식대로 행동하도록 하기 위해 접근하는 방법</p></details>
+<details><summary>18. 현실적 목표와 관련된 이론은?</summary><p>에이브러햄 매슬로우의 욕구위계론</p></details>
+<details><summary>19. 매슬로우 욕구위계 5단계(아래부터)는?</summary><p>생존 욕구 → 안전 욕구 → 애정 → 자존감 → 자아실현</p></details>
+<details><summary>20. 의사소통의 정의는?</summary><p>본질적으로 의미 창출을 위해 메시지를 사용하는 것</p></details>
+<details><summary>21. 의사소통이 적용되는 맥락은?</summary><p>공개연설, 소집단, 대중매체 등 다양한 맥락</p></details>
+<details><summary>22. 선형적 관점이란?</summary><p>의사소통을 발신자가 수신자에게 하는 어떤 행동으로 묘사</p></details>
+<details><summary>23. 선형적 모형의 구성 요소는?</summary><p>발신자 → 통로 → 메시지 → 통로 → 수신자 (+ 소음)</p></details>
+<details><summary>24. 교류적 관점이란?</summary><p>의사소통은 일방적·순차적으로 오가는 것 X
+사람들이 메시지를 주고받는 것</p></details>
+<details><summary>25. 통로는 어느 모형에서 중요한가?</summary><p>선형적·교류적 모형 둘 다</p></details>
+<details><summary>26. 소음의 종류는?</summary><p>물리적 소음, 심리적 소음, 생리적 소음</p></details>
+<details><summary>27. 의사소통 패턴과 관계의 관계는?</summary><p>의사소통자들이 만들어 낸 의사소통 패턴이 그들의 관계에 영향</p></details>
+<details><summary>28. 대인간 의사소통의 교류적 정의는?</summary><p>관련된 사람들이 상이하지만 중첩되는 환경에 있으며, 메시지의 교환으로 관계를 형성하는 것</p></details>
+<details><summary>29. 대인간 의사소통은 양적인가, 질적인가?</summary><p>양적(형식)이 아니라 질적(내용)</p></details>
+<details><summary>30. 대인간 의사소통이 발생하는 조건은?</summary><p>맥락이나 관련된 사람의 수와 상관없이 서로를 독특한 개인으로 여기고 받아들일 때</p></details>
+<details><summary>31. 대인간 의사소통의 반대는?</summary><p>집단·대중·공적 의사소통 X → 비인간적 의사소통</p></details>
+<details><summary>32. 비인간적 의사소통이란?</summary><p>양적인 의사소통
+예: 페이스북 같은 웹사이트로 피상적인 비인간적 관계 맺기 (양 ≠ 질)</p></details>
+<details><summary>33. 대부분의 관계는 인간적인가, 비인간적인가?</summary><p>인간적이지도 비인간적이지도 않은, 두 극단의 사이에 있음</p></details>
+<details><summary>34. 질적 대인간 의사소통을 구분하는 5가지 기준은?</summary><p>① 독특성
+② 대체불가능성
+③ 상호의존성
+④ 정보공개의 양
+⑤ 내재적 보상</p></details>
+<details><summary>35. &#x27;내재적 보상&#x27;의 뜻은?</summary><p>그 관계 자체가 중요</p></details>
+<details><summary>36. 의사소통의 원리 5가지는?</summary><p>① 의도적 / 비의도적
+② 하지 않는 것은 불가능
+③ 되돌릴 수 X
+④ 반복할 수 X
+⑤ 내용적 차원 / 관계적 차원</p></details>
+<details><summary>37. &#x27;의사소통을 하지 않는 것은 불가능하다&#x27;는 뜻은?</summary><p>의도적·비의도적 행동 모두 메시지를 보내고 있음</p></details>
+<details><summary>38. &#x27;잘못된, 결렬된 의사소통&#x27;이란?</summary><p>의사소통이 부적절, 비효율, 불만족스러운 것</p></details>
+<details><summary>39. 의사소통을 반복할 수 없는 이유는?</summary><p>의사소통은 진행 중인 과정이기 때문</p></details>
+<details><summary>40. 내용적 차원이란?</summary><p>분명하게 논의하고 있는 정보</p></details>
+<details><summary>41. 관계적 차원이란?</summary><p>타인에 대해 어떻게 느끼는지</p></details>
+<details><summary>42. 의사소통에 대한 오해 4가지는?</summary><p>① 많이 하는 게 항상 더 좋은 것 X
+② 의미는 말 속에 있는 것 X
+③ 성공적 의사소통이라도 항상 오해가 없는 것 X
+④ 의사소통이 모든 문제를 해결하는 것 X</p></details>
+<details><summary>43. 유능한 의사소통의 정의는?</summary><p>그 관계를 유지·향상시키는 식으로 개인의 목적을 달성</p></details>
+<details><summary>44. 의사소통 역량의 특징 3가지는?</summary><p>① 이상적으로 의사소통하는 방식은 X(본인의 가치를 반영해야)
+② 역량은 상황적(개인 성격 특질로 생각 X)
+③ 역량은 배울 수 있다</p></details>
+<details><summary>45. 유능한 의사소통자의 특징 7가지는?</summary><p>① 폭넓은 범위의 행동
+② 가장 적절한 행동을 택하는 능력
+③ 행동을 수행하는 기술
+④ 인지적 복합성
+⑤ 감정이입
+⑥ 자기감시
+⑦ 몰입</p></details>
+<details><summary>46. &#x27;폭넓은 범위의 행동&#x27;이란?</summary><p>다양한 방법으로 대처</p></details>
+<details><summary>47. &#x27;가장 적절한 행동을 택하는 능력&#x27;이란?</summary><p>상황에 맞게 행동을 택함</p></details>
+<details><summary>48. &#x27;행동을 수행하는 기술&#x27;이란?</summary><p>학습한 것을 실행에 옮김</p></details>
+<details><summary>49. &#x27;인지적 복합성&#x27;이란?</summary><p>상대 의사소통에 대해 여러 가지를 파악</p></details>
+<details><summary>50. &#x27;자기감시&#x27;란?</summary><p>&quot;내가 어떻게 하고 있지?&quot; 스스로 점검</p></details>
+<details><summary>51. &#x27;몰입&#x27;이란?</summary><p>관계에 몰입, 메시지에 관심</p></details>
+<details><summary>52. 문화간 의사소통 역량 4가지는?</summary><p>① 동기
+② 모호성에 대한 인내
+③ 개방성
+④ 지식·기술</p></details>
+<h2>의사소통 · 소셜 미디어 (25)</h2>
+<details><summary>1. 소셜 미디어의 정의는?</summary><p>사용자들이 온라인 의사소통을 하는 데 사용하는 의사소통의 한 형태</p></details>
+<details><summary>2. 매개된 의사소통이란?</summary><p>전자적 매개체로 사람들을 연결시키는 모든 통로</p></details>
+<details><summary>3. 오늘날 사람들은 매개된 의사소통을 어떻게 생각하나?</summary><p>가치 있고 필수적이라 생각</p></details>
+<details><summary>4. 초창기 이론가들은 매개된 의사소통을 어떻게 보았나?</summary><p>첨단장비가 대인관계에 적합하지 않다고 생각 → 비인간적, 과업지향적 관계 초래</p></details>
+<details><summary>5. 초창기 이론가들이 그렇게 본 이유는?</summary><p>목소리, 몸, 다른 행동을 걸러서 → 개인관계에 부적합한 도구라서</p></details>
+<details><summary>6. 매개된 의사소통과 면대면 의사소통의 유사점 3가지는?</summary><p>① 동일 목표
+② 유사한 과정(교류적 의사소통 모형)
+③ 유사한 원리</p></details>
+<details><summary>7. 두 의사소통의 &#x27;유사한 원리&#x27;란?</summary><p>불가역성, 응답하지 않아도 메시지를 보냄</p></details>
+<details><summary>8. 매개된 의사소통의 결과 2가지는?</summary><p>① 탈억제
+② 과다한 개인적 의사소통</p></details>
+<details><summary>9. &#x27;과다한 개인적 의사소통&#x27;이란?</summary><p>자신들의 과업을 완수하는 데 긍정적 관계를 빠르게 형성 가능
+but 관계적 득실에 대한 많은 정보 제공</p></details>
+<details><summary>10. 매개된 의사소통의 혜택 3가지는?</summary><p>① 더 많은 관계 기회
+② 관계 유지·강화
+③ 사회적 지지</p></details>
+<details><summary>11. 매개된 의사소통의 단점 5가지는?</summary><p>① 피상적 관계(양적)
+② 사회적 고립
+③ 관계의 악화
+④ 속임
+⑤ 스토킹, 괴롭힘</p></details>
+<details><summary>12. 매개된 의사소통에 영향을 미치는 요인 2가지는?</summary><p>성별, 나이</p></details>
+<details><summary>13. 나이와 소셜 미디어 사용도의 관계는?</summary><p>젊을수록 사용도↑</p></details>
+<details><summary>14. 소셜 미디어에서의 역량 2가지는?</summary><p>① 긍정적 관계를 함양하기(네티켓 지키기)
+② 자신을 보호하기</p></details>
+<details><summary>15. 네티켓 지키기의 내용 3가지는?</summary><p>온전히 집중할 것을 원하는 상대의 욕구 존중
+공손한 말투 사용
+주변인 침해 X</p></details>
+<details><summary>16. 자신을 보호하기의 내용 3가지는?</summary><p>게시물을 올리기 전에 생각
+온라인에서 본 것 검증
+매개된 시간과 면대면 시간의 균형 유지</p></details>
+<details><summary>17. 매체를 비교하는 세 가지 기준은?</summary><p>동시성, 풍부/빈약, 영구성</p></details>
+<details><summary>18. 동시성이 있는 매체는?</summary><p>면대면, 영상통화, 전화</p></details>
+<details><summary>19. 동시성이 없는 매체는?</summary><p>음성메일, 메시지, 이메일, SNS 사이트</p></details>
+<details><summary>20. 면대면 의사소통의 동시성·풍부도·영구성은?</summary><p>동시성 O, 풍부, 영구성 낮음</p></details>
+<details><summary>21. 영상통화·전화의 동시성·풍부도·영구성은?</summary><p>동시성 O, 보통 풍부, 영구성 낮음</p></details>
+<details><summary>22. 음성메일의 동시성·풍부도·영구성은?</summary><p>동시성 X, 보통 빈약, 영구성 보통</p></details>
+<details><summary>23. 메시지의 동시성·풍부도·영구성은?</summary><p>동시성 X, 빈약, 영구성 보통</p></details>
+<details><summary>24. 이메일·SNS의 동시성·풍부도·영구성은?</summary><p>동시성 X, 빈약, 영구성 높음</p></details>
+<details><summary>25. 가장 풍부한 매체와 가장 영구성이 높은 매체는?</summary><p>가장 풍부: 면대면
+영구성 높음: 이메일, SNS 사이트</p></details>
+<h2>의사소통 · 의사소통과 정체성 (58)</h2>
+<details><summary>1. 자아개념을 이루는 요소는?</summary><p>외모, 사회적 특질, 재능, 지적능력, 신념, 사회적 역할, 신체적 상태</p></details>
+<details><summary>2. 자기개념의 정의는?</summary><p>자신을 보는 상대적으로 안정된 관점</p></details>
+<details><summary>3. 자기개념이 중요한 이유는?</summary><p>우리가 가진 가장 기본적인 것, 이것 없이는 세상과 관계할 수 X</p></details>
+<details><summary>4. 자기존중감의 정의는?</summary><p>자신의 가치에 대한 평가
+자신이 자신의 자질을 어떻게 보느냐에 따라 결정</p></details>
+<details><summary>5. 자기존중감이 높은 사람의 특징은?</summary><p>다른 사람을 좋게 생각, 타인도 자신을 좋게 볼 거라 생각</p></details>
+<details><summary>6. 자기존중감이 낮은 사람의 특징은?</summary><p>자신을 싫어하고 타인도 자기를 싫어할 거라 생각 → 적대감
+자신을 좋게 보이게 하는 방법으로 타인을 무시</p></details>
+<details><summary>7. 자기존중감이 지나치게 높은 사람의 특징은?</summary><p>더 좋은 인상을 주고 친구를 사귀며 멋진 사람을 알 거라 생각
+→ 자기 가치가 도전받을 때 잘난 체 → 타인을 짜증나게 함</p></details>
+<details><summary>8. 생물학과 자기의 관계는?</summary><p>우리는 특정 방식으로 의사소통하게 어느 정도 프로그래밍되어 있는데, 이는 생물학적 성격 특질에 의해 나타남</p></details>
+<details><summary>9. 사회화와 자기개념의 관계는?</summary><p>다른 사람의 메시지가 자기평가에 핵심적인 역할</p></details>
+<details><summary>10. 사회화로 자기개념이 형성되는 3가지 방식은?</summary><p>① 반영평가
+② 중요한 타인
+③ 사회비교</p></details>
+<details><summary>11. 반영평가란?</summary><p>다른 사람이 우리를 보는 방식을 통해 자기평가</p></details>
+<details><summary>12. 중요한 타인이란?</summary><p>우리가 의견을 중시해야 하는 사람으로부터의 메시지가 자기개념에 영향</p></details>
+<details><summary>13. 사회비교란?</summary><p>다른 사람과 비교해 자신이 어떤지 평가
+→ 비교하는 참고 집단이 자신에 대한 견해 형성에 중요한 역할</p></details>
+<details><summary>14. 자기개념의 특징 2가지는?</summary><p>① 자기개념은 주관적이다
+② 자기개념은 변화에 저항한다</p></details>
+<details><summary>15. 자기개념이 주관적인 이유(왜곡된 자기평가의 원인) 4가지는?</summary><p>① 낡은 정보
+② 왜곡된 피드백
+③ 완벽주의
+④ 사회적 기대</p></details>
+<details><summary>16. &#x27;사회적 기대&#x27;가 자기평가를 왜곡하는 방식은?</summary><p>완벽주의 성향의 사회는 자신의 강점을 경시하는 사람에게 보상 → 자신의 단점은 얘기하고, 성취는 하찮게</p></details>
+<details><summary>17. &#x27;자기개념은 변화에 저항한다&#x27;는 뜻은?</summary><p>기존의 자기개념이 낡은 것이어도 변하지 않는 경향</p></details>
+<details><summary>18. 인지적 보수주의란?</summary><p>자존감↑ 사람은 자신을 호의적으로 보는 사람 선호
+자존감↓ 사람은 자신을 비판적으로 보는 사람과 상호작용</p></details>
+<details><summary>19. 자기개념과 반대되는 정보를 받으면 어떻게 하나?</summary><p>① 자기개념 바꾸기
+② 거부해서 기존 자기개념 유지</p></details>
+<details><summary>20. 긍정적인 자기상을 받아들이는 법 4가지는?</summary><p>① 자신에 대해 현실적인 관점
+② 현실적인 기대를 해라
+③ 달라지려는 의지를 가져라
+④ 달라질 수 있는 기술을 개발하라</p></details>
+<details><summary>21. &#x27;자신에 대해 현실적인 관점&#x27;을 가지는 방법은?</summary><p>자신의 강점을 주기적으로 인지
+긍정적 피드백을 해 줄 사람을 주위에</p></details>
+<details><summary>22. &#x27;현실적인 기대&#x27;를 하는 방법은?</summary><p>전문가와 비교 X</p></details>
+<details><summary>23. 문화에 따른 정체성 차이는?</summary><p>서양: 개인주의
+동양: 집단주의</p></details>
+<details><summary>24. 자기충족적 예언의 정의는?</summary><p>자기개념은 성격에 영향력을 행사해서 자신과 타인의 미래 행동에도 영향을 미침</p></details>
+<details><summary>25. 자기충족적 예언의 단계 4가지는?</summary><p>① 기대하기
+② 그 기대에 따라 행동
+③ 기대의 실현
+④ 기존의 기대를 강화</p></details>
+<details><summary>26. 자기충족적 예언의 유형 2가지는?</summary><p>① 자발적 예언
+② 다른 사람에게 하는 예언</p></details>
+<details><summary>27. 자발적 예언이란?</summary><p>자신의 기대가 자신의 행동에 영향</p></details>
+<details><summary>28. 공적 자기란?</summary><p>표현적 자기, 타인에게 보여 주고 싶은 우리의 모습</p></details>
+<details><summary>29. 사적 자기란?</summary><p>지각된 자기, 자기개념의 한 모습</p></details>
+<details><summary>30. 인상관리의 특징 3가지는?</summary><p>① 우리는 다수의 정체성을 구성하려 노력
+② 인상관리는 공동의 작업이다
+③ 인상관리는 의식적/무의식적</p></details>
+<details><summary>31. &#x27;인상관리는 공동의 작업&#x27;이라는 뜻은?</summary><p>정체성과 관련된 의사소통은 사람들이 모든 대화에서 상대의 행동에 대한 반응으로 자신의 정체성을 구성한다는 점</p></details>
+<details><summary>32. 인상관리가 무의식적일 수 있음을 보여 준 연구는?</summary><p>소금이 많이 들어간 샌드위치를 먹을 때, 혼자 있을 때는 표정 변화 X</p></details>
+<details><summary>33. 인상관리의 이유 4가지는?</summary><p>① 관계를 시작·관리
+② 다른 사람의 순응을 얻기 위해
+③ 다른 사람의 체면을 지키려고
+④ 새로운 자기를 탐색하려고</p></details>
+<details><summary>34. 면대면 인상관리 방식 3가지는?</summary><p>① 방식: 말, 비언어적 행동
+② 외모
+③ 환경
+→ 타인이 우리를 보는 방식에 영향을 미치기 위해 사용</p></details>
+<details><summary>35. 인상관리와 정직성의 관계는?</summary><p>특정 상황에서 어떤 모습으로 의사소통할지 결정한 후에 하는 것</p></details>
+<details><summary>36. 자기개방의 정의는?</summary><p>타인이 모르고 자신에게 중요한 정보를 타인에게 의도적으로 공유</p></details>
+<details><summary>37. 관계의 강도를 판단하는 방법은?</summary><p>공유하는 정보의 양</p></details>
+<details><summary>38. 자기개방의 필수조건 3가지는?</summary><p>① 의도적
+② 정보는 중요해야
+③ 타인이 모르는 정보여야</p></details>
+<details><summary>39. 자기개방의 노출 방법(모델) 2가지는?</summary><p>① 사회적 침투
+② 조하리의 창</p></details>
+<details><summary>40. 사회적 침투 모델에서 개방의 두 차원은?</summary><p>개방 정보의 폭(범위), 개방 정보의 깊이</p></details>
+<details><summary>41. 조하리의 창 4영역은?</summary><p>1. 공개된 영역
+2. 맹점 영역
+3. 숨기는 영역
+4. 미지의 영역</p></details>
+<details><summary>42. 조하리의 창 &#x27;공개된 영역&#x27;이란?</summary><p>나도 알고 상대도 앎</p></details>
+<details><summary>43. 조하리의 창 &#x27;맹점 영역&#x27;이란?</summary><p>나는 모르고 상대는 앎 → 타인을 통해 정보 학습</p></details>
+<details><summary>44. 조하리의 창 &#x27;숨기는 영역&#x27;이란?</summary><p>나는 알고 상대는 모름 → 자기개방을 통해 공개</p></details>
+<details><summary>45. 조하리의 창 &#x27;미지의 영역&#x27;이란?</summary><p>둘 다 모름 → 추론</p></details>
+<details><summary>46. 자기개방의 혜택 6가지는?</summary><p>① 정화
+② 상호성
+③ 자기명료화
+④ 자기타당화
+⑤ 관계를 만들고 관리
+⑥ 사회적 영향</p></details>
+<details><summary>47. 자기개방의 혜택 &#x27;정화&#x27;란?</summary><p>적절히 다루면 심리적·정신적 안정감</p></details>
+<details><summary>48. 자기개방의 혜택 &#x27;상호성&#x27;이란?</summary><p>상대가 내 정보를 솔직히 털어놓는다고 느끼면 같이 공개</p></details>
+<details><summary>49. &#x27;자기명료화&#x27;와 &#x27;자기타당화&#x27;의 차이는?</summary><p>자기명료화: 자신의 믿음·의견 공개 → 그것을 명료화
+자기타당화: 자기에 대한 믿음 확인</p></details>
+<details><summary>50. 자기개방의 혜택 &#x27;사회적 영향&#x27;이란?</summary><p>개인정보 공개 → 타인·상황의 통제↑</p></details>
+<details><summary>51. 자기개방의 위험 5가지는?</summary><p>① 거부
+② 부정적 인상
+③ 관계만족의 감소
+④ 영향력의 손실
+⑤ 다른 사람에게 상처주기</p></details>
+<details><summary>52. 자기개방의 위험 &#x27;영향력의 손실&#x27;이란?</summary><p>숨겨 둔 약점 고백</p></details>
+<details><summary>53. 자기개방의 지침 6가지는?</summary><p>① 그 사람이 나에게 얼마나 중요?
+② 개방의 양·유형이 적절?
+③ 개방의 위험이 합리적?
+④ 효과가 긍정적?
+⑤ 상호적?
+⑥ 개방해야 한다는 도덕적 의무감을 가지고 있나?</p></details>
+<details><summary>54. 자기개방의 대안 4가지는?</summary><p>침묵, 거짓말, 얼버무리기, 암시 (+ 회피의 윤리학)</p></details>
+<details><summary>55. 침묵은 언제 쓰나?</summary><p>진실을 말해서 관계가 위태로울 때</p></details>
+<details><summary>56. 거짓말은 언제 쓰나?</summary><p>선의의 거짓말이 필요할 때</p></details>
+<details><summary>57. 얼버무리기는 언제 쓰나?</summary><p>거짓말도 솔직한 말도 못할 때</p></details>
+<details><summary>58. 암시는 언제 쓰나?</summary><p>진실이 초래하는 불편함을 모면하고 싶을 때</p></details>
+<h2>의사소통 · 지각 (57)</h2>
+<details><summary>1. 지각과정의 4단계는?</summary><p>① 선택
+② 조직화
+③ 해석
+④ 협상</p></details>
+<details><summary>2. 지각과정 ① 선택이란?</summary><p>지각의 첫 단계, 어떤 느낌에 주의를 기울일지를 말함</p></details>
+<details><summary>3. 선택 단계에서 주의를 끄는 것과 무시하는 것은?</summary><p>① 강력한 자극
+② 반복적인 자극
+③ 동기
+④ 다른 단서들은 무시</p></details>
+<details><summary>4. 지각과정 ② 조직화란?</summary><p>선택한 정보를 의미 있는 방식으로 배열, 분류</p></details>
+<details><summary>5. 지각적 도식이란?</summary><p>우리가 사용하는 정보 정리의 틀
+우리의 사고방식과 타인과의 의사소통 방식을 결정</p></details>
+<details><summary>6. 조직화 과정에서 고정관념은 어떤 결과를 낳나?</summary><p>하나의 범주화, 일반화를 초래
+현실에 기초할 수도 있지만 종종 타당성 없는 주장을 만듦</p></details>
+<details><summary>7. 방점(구두점)이란?</summary><p>의사소통의 상호작용에서 원인과 결과에 대한 결정을 가능하게 하기 위해 사용</p></details>
+<details><summary>8. 지각과정 ③ 해석이란?</summary><p>감각자료에 의미를 부여</p></details>
+<details><summary>9. 해석에 영향을 주는 요인 8가지는?</summary><p>① 상대방의 몰입 정도
+② 개인적 경험
+③ 인간 행동에 대한 가정
+④ 태도
+⑤ 기대
+⑥ 지식
+⑦ 자기개념
+⑧ 관계만족</p></details>
+<details><summary>10. 지각과정 ④ 협상이란?</summary><p>지각은 홀로 발생 X
+사람들이 서로의 지각에 영향을 미치고 공유된 지각을 얻고자 노력하는 과정 속에서 지각의 상당 부분이 만들어짐</p></details>
+<details><summary>11. 협상에서 &#x27;공유된 이야기&#x27;의 의미는?</summary><p>순조롭게 의사소통할 수 있는 최상의 기회 제공</p></details>
+<details><summary>12. 지각에 영향을 미치는 요인 4가지는?</summary><p>① 정보에 대한 접근
+② 생리적 영향
+③ 문화적 차이
+④ 사회적 역할</p></details>
+<details><summary>13. 정보에 대한 접근이 지각에 미치는 영향은?</summary><p>우리는 알고 있는 것만 이해 가능
+다른 사람의 역할이 여러 개일 때 그들에 대한 새로운 정보를 얻음
+SNS는 지각에 영향을 미치는 새로운 정보 제공</p></details>
+<details><summary>14. 지각에 영향을 미치는 생리적 요인은?</summary><p>감각(개인차 O), 심리적 영향, 연령, 건강과 피로, 배고픔, 생물학적 순환</p></details>
+<details><summary>15. 생물학적 순환이 지각에 영향을 주는 이유는?</summary><p>생리적 이유, 호르몬 순환</p></details>
+<details><summary>16. 문화적 차이가 지각에 미치는 영향은?</summary><p>모든 문화는 그들만의 세계관 O, 세계를 바라보는 그들만의 방식 O</p></details>
+<details><summary>17. 문화적 차이와 관련해 경계할 태도는?</summary><p>자민족중심주의</p></details>
+<details><summary>18. 사회적 역할이 지각에 영향을 주는 방식은?</summary><p>우리는 태어나면서부터 각자 수행하는 역할을 직간접적으로 교육받아 옴</p></details>
+<details><summary>19. 사회적 역할의 종류 3가지는?</summary><p>성역할, 직업적 역할, 관계적 역할</p></details>
+<details><summary>20. 직업적 역할이 지각에 영향을 주는 이유는?</summary><p>직업의 종류, 경험·지식의 차이</p></details>
+<details><summary>21. 관계적 역할이란?</summary><p>내가 누구인지 정의하면서 내 지각에도 영향
+연인관계에서 역할은 지각에 막대한 영향</p></details>
+<details><summary>22. 사회적 역할이 지각에 미치는 긍정적·부정적 영향은?</summary><p>긍정적: 원활한 사회, 안정감
+부정적: 융통성 X → 다른 사람의 관점 이해 X</p></details>
+<details><summary>23. 기본귀인오류란?</summary><p>타인의 행동에 대해 귀인할 때 그 사람의 기질, 성격을 통해 설명하려는 경향성</p></details>
+<details><summary>24. 기본귀인오류의 예와 관련 개념은?</summary><p>&#x27;원래 그런 사람&#x27;이라고 생각
+&#x27;행위자-관찰자 편향&#x27;과도 관련</p></details>
+<details><summary>25. 지각의 공통점(공통 경향) 5가지는?</summary><p>① 관대한 자기지각
+② 첫인상에 대한 집착
+③ 가정된 유사성
+④ 기대의 영향
+⑤ 분명한 요인의 영향</p></details>
+<details><summary>26. 첫인상이 긍정적일 때와 부정적일 때 생기는 효과는?</summary><p>긍정적 → 후광효과
+부정적 → 악마효과</p></details>
+<details><summary>27. 첫인상에 대한 집착을 줄이는 방법은?</summary><p>개방된 사고를 유지, 자신의 생각이 틀리면 기꺼이 그 생각을 바꿈</p></details>
+<details><summary>28. 가정된 유사성: 자존감이 낮은 사람과 높은 사람은?</summary><p>자존감↓: 다른 사람도 자기를 비우호적이게 볼 거라 생각
+자존감↑: 다른 사람도 자기를 긍정적이게 볼 거라 생각</p></details>
+<details><summary>29. 가정된 유사성이란?</summary><p>다른 사람의 관점이 자기의 관점과 유사하다는 잘못된 가정을 다양한 상황에 적용하는 것</p></details>
+<details><summary>30. 기대의 영향이란?</summary><p>기대가 지각에 미치는 영향은 긍정적이거나 부정적 → 자기충족적 예언을 유발할 수 O</p></details>
+<details><summary>31. 분명한 요인의 영향이란?</summary><p>주의를 끄는 상황으로부터 주의를 사로잡는 자극을 선택
+→ 가장 명백한 요인이 반드시 가장 중요한 요인인 것은 X</p></details>
+<details><summary>32. 지각점검의 목적은?</summary><p>자신의 해석을 좀 더 잘 다룰 수 있음</p></details>
+<details><summary>33. 지각점검의 3요소는?</summary><p>① 주목한 행동에 대해 기술
+② 거기에 대한 적어도 두 개의 가능한 해석
+③ 그에 대한 설명 요구</p></details>
+<details><summary>34. 지각점검에서 가능한 해석은 최소 몇 개를 제시하나?</summary><p>두 개</p></details>
+<details><summary>35. 지각점검의 효과 2가지는?</summary><p>더 정확한 지각을 가져옴
+다른 사람의 체면을 지켜 그들의 방어를 최소화</p></details>
+<details><summary>36. 지각점검의 고려사항 4가지는?</summary><p>① 완성도
+② 비언어적 일치
+③ 문화적 규칙
+④ 체면의 유지</p></details>
+<details><summary>37. 지각점검 고려사항 &#x27;완성도&#x27;란?</summary><p>때로 지각점검이 효과적이기 위해 앞서 말한 요소가 모두 필요한 건 X</p></details>
+<details><summary>38. 지각점검 고려사항 &#x27;비언어적 일치&#x27;란?</summary><p>말·행동 모두 개방적이어야</p></details>
+<details><summary>39. 지각점검 고려사항 &#x27;문화적 규칙&#x27;이란?</summary><p>서양 - 직접적
+동양 - 간접적</p></details>
+<details><summary>40. 지각점검 고려사항 &#x27;체면의 유지&#x27;란?</summary><p>다른 사람을 직접적으로 공격 X
+직접적인 대립보다 상대의 행동을 덜 위협하는 방식</p></details>
+<details><summary>41. 감정이입(공감)의 정의는?</summary><p>다른 사람의 감정을 재현하는 능력
+세상을 다른 사람의 관점으로 경험</p></details>
+<details><summary>42. 감정이입의 3차원은?</summary><p>① 조망수용
+② 정서적 차원
+③ 타인의 안녕에 대한 진정한 관심</p></details>
+<details><summary>43. 조망수용이란?</summary><p>타인의 관점을 취해 보려는 노력
+판단중지를 요구</p></details>
+<details><summary>44. 조망수용은 집단주의와 개인주의 중 어디에서 더 잘 나타나나?</summary><p>집단주의 &gt; 개인주의</p></details>
+<details><summary>45. 감정이입의 정서적 차원이란?</summary><p>다른 사람의 감정을 좀 더 가까이에서 경험하도록 도움</p></details>
+<details><summary>46. 공감과 동정의 차이는?</summary><p>공감: 그들의 관점으로 그들의 상황을 봄
+동정: 우리의 관점으로 봄</p></details>
+<details><summary>47. 공감 능력은 타고나는가, 발달하는가?</summary><p>선천적으로 타고나지만 환경적 경험이 이해능력을 발달시킴
+인간은 공감하도록 유전적으로 내장</p></details>
+<details><summary>48. Daniel Goleman이 말한 사회적 지능의 핵심은?</summary><p>공감에 대한 선천적 경향성을 발달시키는 것</p></details>
+<details><summary>49. 인지적 복잡성이란?</summary><p>특정 문제를 바라보는 다양한 틀을 구축 → 만족스러운 의사소통↑</p></details>
+<details><summary>50. 인지적 복잡성의 장점 3가지는?</summary><p>① 타인의 행동을 이해할 방법이 많을수록 그들의 관점에서 세상을 볼 가능성↑
+② 상황을 더 정확하게, 덜 단순하게 기술하게 도움
+③ 인지적으로 복잡한 사람이 빈정대는 말을 더 잘 보고 이해</p></details>
+<details><summary>51. 인지적 복잡성은 향상될 수 있나?</summary><p>훈련을 통해 향상 가능</p></details>
+<details><summary>52. 베개법의 5단계는?</summary><p>① 나는 맞고 너는 틀려
+② 너는 맞고 나는 틀려
+③ 둘 다 맞고 둘 다 틀려
+④ 그 문제는 중요치 않아
+⑤ 네 가지 모든 관점에 진실이 있어</p></details>
+<details><summary>53. 베개법 ① &#x27;나는 맞고 너는 틀려&#x27;란?</summary><p>우리가 문제를 볼 때 일반적으로 취하는 관점</p></details>
+<details><summary>54. 베개법 ② &#x27;너는 맞고 나는 틀려&#x27;란?</summary><p>상대 관점에서 보고 상대의 강점 확인, 자신의 결점 확인</p></details>
+<details><summary>55. 베개법 ③ &#x27;둘 다 맞고 둘 다 틀려&#x27;란?</summary><p>두 개의 관점에 모두 장·단점이 있다</p></details>
+<details><summary>56. 베개법 ④ &#x27;그 문제는 중요치 않아&#x27;란?</summary><p>그 문제가 생각만큼 중요하지 않다는 것을 깨달으면 논쟁의 중요성↓</p></details>
+<details><summary>57. 베개법 ⑤ &#x27;네 가지 모든 관점에 진실이 있어&#x27;란?</summary><p>하나의 문제를 다섯 가지 관점으로 보면 새로운 통찰 획득</p></details>
+</section>
+  <div id="app" hidden>
+  <section id="topics"></section>
+
+  <div class="topicbar">
+    <h2 id="tname"></h2>
+    <span class="pos" id="pos"></span>
+  </div>
+
+  <div class="scene-x">
+    <div class="card" id="card" tabindex="0" role="button" aria-label="카드 뒤집기">
+      <div class="face front"><span class="tag" id="ftag">문제</span><div class="q" id="q"></div><div class="hint">눌러서 답 보기</div></div>
+      <div class="face back"><span class="tag" id="btag">답</span><div class="a" id="a"></div><div class="hint">눌러서 문제로</div></div>
+    </div>
+  </div>
+
+  <div class="judge">
+    <button class="btn x" id="bx" type="button">✕ 틀렸어요</button>
+    <button class="btn o" id="bo" type="button">○ 맞았어요</button>
+  </div>
+  <div class="nav">
+    <button class="btn" id="prev" type="button">← 이전</button>
+    <button class="btn" id="next" type="button">다음 →</button>
+  </div>
+
+  <section class="panel">
+    <div class="score" id="score"></div>
+    <div class="nums" id="nums"></div>
+    <div class="lists" id="lists"></div>
+    <div class="tools">
+      <button class="btn" id="retry" type="button">틀린 카드만 풀기</button>
+      <button class="btn" id="all" type="button">전체 카드 보기</button>
+      <button class="btn" id="shuffle" type="button">순서 섞기</button>
+      <button class="btn" id="reset" type="button">이 주제 기록 지우기</button>
+    </div>
+    <div class="confirm" id="confirm" hidden>
+      이 주제의 ○✕ 기록을 모두 지울까요?
+      <button class="btn x" id="yes" type="button">지우기</button>
+      <button class="btn" id="no" type="button">취소</button>
+    </div>
+  </section>
+  </div>
+</div>
+
+<script>
+const DATA = [
+{group:"영양", name:"무기질", cards:[
+["무기질의 정의는?","탄소를 함유하지 않은 물질"],
+["무기질은 신체의 몇 %를 차지하나?","4%"],
+["다량무기질의 기준은?","하루 필요량 100mg 이상"],
+["다량무기질의 종류는?","칼슘, 인, 마그네슘, 칼륨, 나트륨, 염소, 유황 등"],
+["골격 형성에 중요한 다량무기질 3가지는?","마그네슘, 인, 칼슘"],
+["마그네슘·인·칼슘이 골격·치아에 존재하는 비율은?","마그네슘 60%\n인 85%\n칼슘 99%"],
+["칼슘의 몇 %가 골격·치아에 존재하나?","99%"],
+["인의 몇 %가 골격·치아에 존재하나?","85%"],
+["마그네슘의 몇 %가 골격·치아에 존재하나?","60%"],
+["뼈가 만들어지는 과정은?","콜라겐 분비 → 뼈 구조물 형성 → (칼슘·인) 석회화 진행"],
+["뼈를 만드는 세포와 분해하는 세포의 이름은?","조골세포(만듦), 파골세포(분해)"],
+["조골세포와 파골세포의 속도는 나이에 따라 어떻게 변하나?","처음에는 조골세포가 빠르다가\n노화되면 파골세포가 우세"],
+["뼈의 역할은?","몸 형태·골격 유지, 충격 보호\n칼슘·인의 저장소"],
+["성인은 매년 뼈의 몇 %가 교체되나?","20%"],
+["골다공증이란?","골밀도가 감소한 상태"],
+["해면골의 역할은?","필요 시 칼슘을 혈액으로 용출 → 혈중 칼슘 농도 유지"],
+["골다공증의 원인 6가지는?","① 칼슘·비타민 D 섭취 부족\n② 연령\n③ 운동 부족\n④ 성별·마른 체격\n⑤ 흡연·음주\n⑥ 가족력"],
+["폐경기 이후 골다공증이 생기는 과정은?","에스트로겐 분비 X → 비타민 D 합성↓ → 칼슘 흡수율↓ → 혈중 칼슘 농도↓"],
+["골다공증 예방법 5가지는?","① 칼슘 함유 식품 섭취\n② 비타민 C, D 섭취\n③ 단백질, 인 섭취\n④ 운동\n⑤ 에스트로겐 요법, 칼슘 보충제"],
+["칼슘 흡수 촉진 인자 6가지는?","① 비타민 C, D\n② 포도당·유당\n③ 성장기·임신기\n④ 낮은 칼슘 섭취\n⑤ 소장 내 산성 환경\n⑥ 부갑상선 호르몬, 에스트로겐"],
+["칼슘 흡수 저해 인자 5가지는?","① 비타민 D 결핍\n② 탄닌, 과량의 식이섬유, 피틴산, 수산, 지방산\n③ 폐경, 노인\n④ 과량의 인·철분·아연\n⑤ 소장 내 알칼리성 환경"],
+["칼슘 흡수에 유리한 소장 환경은 산성인가, 알칼리성인가?","산성 (알칼리성 환경은 흡수 저해)"],
+["칼슘 흡수를 돕는 당 2가지는?","포도당, 유당"],
+["칼슘 흡수를 돕는 호르몬은?","부갑상선 호르몬, 에스트로겐"],
+["칼슘 흡수를 방해하는 식품 성분은?","탄닌, 과량의 식이섬유, 피틴산, 수산, 지방산"],
+["과량 섭취 시 칼슘 흡수를 방해하는 무기질은?","인, 철분, 아연"],
+["나트륨·칼륨·염소가 공통으로 관여하는 기능은?","체액의 삼투압, 수분 평형"],
+["나트륨(Na)은 어디의 어떤 이온인가?","세포 외액의 양이온"],
+["칼륨(K)은 어디의 어떤 이온인가?","세포 내액의 양이온"],
+["염소(Cl)는 어디의 어떤 이온인가?","세포 외액의 음이온"],
+["세포내액은 체내 수분량의 얼마이고, 무엇으로 조절되나?","체내 수분량의 2/3\n칼륨·인의 농도로 조절"],
+["세포외액은 체내 수분량의 얼마이고, 무엇으로 조절되나?","체내 수분량의 1/3\n나트륨·염소의 농도로 조절"],
+["짠 음식을 많이 먹었을 때 수분평형이 이루어지는 과정은?","세포 외액 나트륨 농도↑ → 내액의 수분이 밖으로 이동 → 내액 수분 함량↓ → 갈증 → 물 섭취 → 수분 평형"],
+["물을 많이 섭취했을 때 수분평형이 이루어지는 과정은?","세포 외액의 전해질 농도↓ → 신장에서 소변 많이 배출 → 수분 평형"],
+["나트륨의 기능 3가지는?","신경자극전달, 삼투압 조절, 산-염기 평형"],
+["나트륨 결핍증은?","근육경련, 식욕감퇴"],
+["나트륨 과잉증은?","고혈압, 요중 칼슘 손실"],
+["나트륨의 급원은?","장류, 장아찌, 베이킹파우더"],
+["칼륨의 기능은?","신경자극전달, 삼투압 조절, 산-염기 평형 (나트륨과 같음)"],
+["칼륨 결핍증은?","근육경련, 식욕감퇴, 불규칙한 심장박동"],
+["칼륨 과잉증은?","느린 심장박동"],
+["칼륨의 급원은?","채소, 과일, 육류, 우유"],
+["염소의 기능 2가지는?","신경자극전달, 위액 형성"],
+["염소 결핍증은?","혼수상태(유아의 경우)"],
+["염소 과잉증과 급원은?","과잉: 고혈압\n급원: 식탁염, 가공식품"],
+["결핍 시 '불규칙한 심장박동', 과잉 시 '느린 심장박동'이 나타나는 무기질은?","칼륨"],
+["소금은 무엇으로 이루어져 있고, 소금 1g에 든 나트륨은?","소금 = 나트륨 + 염소\n1g → 나트륨 400mg"],
+["나트륨 과다 섭취가 골다공증으로 이어지는 이유는?","소변으로 나트륨 배출이 많아지면 뼈 속 칼슘 배출도 증가 → 골다공증 위험↑"],
+["WHO 1일 권장 나트륨 섭취량은?","2,000mg"],
+["한국 성인의 1일 나트륨 섭취량은?","3,274mg"],
+["미량무기질의 기준은?","체중의 0.005% 미만, 생명 유지에 필수적"],
+["미량무기질 5가지는? (노트 기준)","철분, 아연, 요오드, 불소, 셀레늄"],
+["철분의 기능은?","헤모글로빈 성분, 면역기능, 인지발달"],
+["철분의 결핍증과 과잉증은?","결핍: 철분결핍성 빈혈\n과잉: 혈색소증"],
+["철분의 급원은?","육류, 해산물, 강화 시리얼"],
+["아연의 기능은?","효소의 구성요소, 생체막 구조·기능 유지"],
+["아연 결핍증은?","성장지연, 피부발진, 식욕부진"],
+["아연 과잉증은?","설사, 근육경련, 면역기능↓"],
+["아연의 급원은?","굴, 새우, 게, 육류"],
+["요오드의 기능은?","갑상선 호르몬의 성분"],
+["요오드의 결핍증과 과잉증은?","결핍: 갑상선종\n과잉: 갑상선기능항진증, 갑상선중독증"],
+["요오드의 급원은?","해조류, 생선, 요오드 강화소금"],
+["불소의 기능은?","충치 예방"],
+["불소의 결핍증과 과잉증은?","결핍: 치아우식\n과잉: 치아불소증, 골격불소증"],
+["불소의 급원은?","치약, 해조류, 불소화된 물"],
+["셀레늄의 기능은?","항산화작용, 비타민 E 절약작용"],
+["셀레늄의 결핍증과 과잉증은?","결핍: 근육통, 근육약화\n과잉: 구토, 탈모, 간질환"],
+["셀레늄의 급원은?","육류, 난류, 해산물, 견과류"],
+["'비타민 E 절약작용'을 하는 무기질은?","셀레늄"],
+["과잉 시 '혈색소증'이 생기는 무기질은?","철분"],
+["굴·새우·게가 대표 급원인 무기질은?","아연"],
+["빈혈의 정의는?","적혈구의 양이나 수가 감소하고, 혈색소의 양·혈구의 용적이 정상보다 낮아 혈액이 묽어져 있는 상태"],
+["적혈구·헤모글로빈의 역할과 부족할 때 결과는?","신체에 산소 공급\n부족 시 산소량↓ → 빈혈"],
+["철 흡수 촉진 요인 4가지는?","헴철, 비타민 C, 위산, 저장 철분량↓"],
+["철 흡수 저해 요인은?","식물성 성분(피틴산, 식이섬유), 폴리페놀 성분(차의 탄닌), 위산 분비↓, 위장 질환, 다른 무기질↑"],
+["원인에 따른 빈혈 분류 5가지는?","① 철결핍성 빈혈\n② 거대적아구성 빈혈\n③ 혈액손실에 의한 빈혈\n④ 재생불량성 빈혈\n⑤ 용혈성 빈혈"],
+["가장 흔한 빈혈은? 그 원인은?","철결핍성 빈혈\n적혈구 생성 영양소인 철분의 부족 → 헤모글로빈 합성↓"],
+["거대적아구성 빈혈의 원인은?","비타민 B12나 엽산 결핍 → 적혈구 전구세포의 정상적인 성숙 장애"],
+["혈액손실에 의한 빈혈의 원인과 회복은?","급성출혈, 만성출혈\n수혈·적절한 공급으로 회복 가능"],
+["재생불량성 빈혈의 과정은?","선천적·후천적\n골수기능 이상 → 조혈세포 감소 → 혈구생성기능↓ → 적혈구·백혈구·혈소판↓"],
+["용혈성 빈혈의 특징과 원인은?","적혈구가 정상보다 빠르게 파괴됨\n원인: 유전적 요인, 면역반응, 비타민 E 결핍"],
+["갑상선 호르몬이 많을 때 생기는 질환과 증상은?","갑상선항진증: 신진대사↑ → 더위를 탐, 열, 체중↓"],
+["갑상선 호르몬이 적을 때 생기는 질환은?","갑상선저하증: 신진대사↓"],
+["요오드 섭취가 부족하면 생기는 증상은?","갑상선 비대, 기관지 압박, 호흡곤란, 체중↑"],
+["임산부가 요오드 섭취가 부족하면?","크레틴증 아기 출산 위험"],
+["식품의 산성·알칼리성은 무엇으로 구분하나?","연소시켰을 때 최종적으로 남는 원소"],
+["알칼리성 식품을 만드는 원소와 대표 식품은?","나트륨·칼륨·칼슘·마그네슘\n과일, 채소, 버섯, 해조류"],
+["산성 식품을 만드는 원소와 대표 식품은?","염소·인·황\n어패류, 육류, 곡류, 유지류"]
+]},
+{group:"영양", name:"물", cards:[
+["식품 없이, 물 없이 각각 얼마나 버틸 수 있나?","식품은 최대 8주까지 없이 생존 가능\n물은 며칠만 못 먹어도 이상이 생김"],
+["인체 물의 양은 무엇과 비례하나?","근육량"],
+["근육의 몇 %가 물인가?","76%"],
+["물의 기능 ①: 신체 구성","신체조직의 구성(근육의 76%)"],
+["물의 기능 ②: 이동·용매","영양소를 신체 곳곳에 이동\n수용성 물질의 용매 역할, 화학반응에 참가"],
+["물의 기능 ③: 노폐물","노폐물 수송, 신장을 통해 배설되게 함"],
+["물의 기능 ④: 보호","외부 충격으로부터 보호, 윤활유 역할"],
+["물의 기능 ⑤⑥: 조절","체온 유지\n전해질 농도, 산-염기 평형 유지"],
+["물의 기능을 모두 말해 보자.","신체조직 구성 / 영양소 이동 / 용매·화학반응 참가 / 노폐물 수송·배설 / 충격 보호·윤활유 / 체온 유지 / 전해질 농도·산-염기 평형 유지"],
+["물의 대사에 포함되는 것은?","수분 평형, 수분 공급, 수분 배출"],
+["수분 권장량 기준은?","소비열량 1kcal당 1ml"],
+["성인이 수분이 부족하면 처음 느끼는 것은?","갈증"],
+["수분 1~2% 결핍 시 증상은?","갈증"],
+["수분 3~4% 결핍 시 증상은?","혈류량↓, 근육 피로"],
+["수분 8% 결핍 시 증상은?","어지러움, 호흡곤란"],
+["수분 10~12% 결핍 시 증상은?","무기력증, 혈류순환 장애"],
+["수분 20% 결핍 시 결과는?","혼수상태, 사망"],
+["수분 필요량이 증가하는 경우는?","체온↑, 짠 음식, 카페인, 알코올 섭취"],
+["탈수가 생기는 과정은?","고열·설사·육체운동 → 과도한 발한 지속 → 수분 섭취 부족 → 탈수"]
+]},
+{group:"영양", name:"단백질", cards:[
+["단백질 1g당 열량은?","4kcal"],
+["단백질의 신체 조절·유지 작용에 포함되는 것은?","근육, 효소, 호르몬, 항체 생성, 혈액응고, 체액의 균형, 시각, 세포 손상 복구"],
+["단백질 합성에 필요한 아미노산은 몇 가지인가?","20가지"],
+["필수아미노산은 몇 가지인가? 외우는 머리글자는?","10가지\nT I L L T V P M H A"],
+["필수아미노산 10가지는?","트레오닌, 아이소류신, 라이신, 류신, 트립토판, 발린, 페닐알라닌, 메티오닌, 히스티딘, 아르기닌"],
+["필수아미노산 중 어린이가 추가로 섭취해야 하는 것은?","아르기닌"],
+["필수아미노산 T·I·L·L은?","트레오닌, 아이소류신, 라이신, 류신"],
+["필수아미노산 T·V·P·M·H·A는?","트립토판, 발린, 페닐알라닌, 메티오닌, 히스티딘, 아르기닌"],
+["단백질의 체내 기능 5가지는?","① 뼈·근육 대부분 구성\n② 수분, 산·염기 조절\n③ 효소·호르몬 합성\n④ 항체·면역세포\n⑤ 에너지 급원"],
+["신체 구성 비율(물·단백질·지방·무기질)은?","물 65%, 단백질 16%, 지방 15%, 무기질 5%"],
+["성장기 어린이·임산부에게 단백질이 중요한 이유는?","새로운 조직 형성 시기"],
+["성장이 끝난 성인에게 단백질의 역할은?","체내 단백질 교체 진행"],
+["단백질이 체액의 pH를 유지하는 원리는?","단백질은 양성물질(산·알칼리 성질 모두 가짐) → 완충작용으로 체액의 pH 유지"],
+["부종을 방지하는 단백질과 그 원리는?","알부민, 글로불린\n혈관 삼투압을 유지해 부종 방지"],
+["단백질이 합성하는 효소·호르몬은?","거의 모든 효소 합성\n갑상선 호르몬, 인슐린 같은 호르몬 합성\n→ 혈압·혈당 등 항상성 유지에 필요한 생체 조절"],
+["단백질의 항체·면역세포 기능은?","면역체계 세포, 항체의 중요 부분 구성 → 외부의 병원균 방어"],
+["단백질이 에너지 급원이 되는 경우는?","기아상태·포도당 부족 시 단백질이 포도당으로 전환되어 뇌·적혈구에 공급"],
+["단백질 결핍증 2가지는?","콰시오커, 마라스무스"],
+["콰시오커: 열량과 단백질 결핍 정도는?","열량 결핍은 보통, 단백질 결핍은 심각"],
+["콰시오커가 생기는 상황은?","모유수유에서 일반식사로의 부적절한 전환 시, 식이부족 시 초래"],
+["콰시오커의 신체 특징은?","피하지방 유지, 부종 O"],
+["마라스무스: 열량과 단백질 결핍 정도는?","둘 다 결핍 심각(기아상태)"],
+["마라스무스가 생기는 상황과 결과는?","부적절한 모유수유, 심각한 저체중 → 뇌성장 지연·감소 → 어른이 돼서도 지적성장 저하"],
+["마라스무스의 신체 특징은?","근육·피하지방 X"],
+["부종이 있는 것은 콰시오커인가, 마라스무스인가?","콰시오커"],
+["단백질 과잉증 4가지는?","① 간과 신장에 부담\n② 체중 증가\n③ 대장암\n④ 골다공증"],
+["단백질 과잉이 간·신장에 부담을 주는 이유는?","고단백질 위주의 식사 장기간 지속 → 잉여 질소 처리 → 부담"],
+["단백질 과잉이 체중 증가를 일으키는 이유는?","체내에서 지방으로 전환"],
+["단백질 과잉이 골다공증을 일으키는 이유는?","소변 내 칼슘 증가로 초래"],
+["완전단백질이란?","제한 아미노산 X, 모든 필수아미노산 포함\n동물성"],
+["불완전단백질이란?","한 가지 이상의 제한 아미노산\n식물성"],
+["불완전단백질의 단점을 보완하는 방법은?","혼합식이로 영양 균형"],
+["단백질 1일 섭취 권장량은?","체중 1kg당 1g"],
+["단백질은 총에너지 섭취량의 몇 %가 적당한가?","10~20%"],
+["단백질 중 동물성은 어느 정도가 좋은가?","1/3 이상 동물성으로\n(필요시 단백질 필요량↑)"]
+]},
+{group:"영양", name:"비타민", cards:[
+["비타민의 일반적 특징은?","식품에 소량 함유, 조절소\n반드시 섭취해야 함\n조효소로 작용"],
+["지용성 비타민의 종류는?","비타민 A, D, E, K"],
+["지용성 비타민의 특징은?","지방에 녹음 / 지방조직에 저장 / 과량 섭취 시 독성 / 매일 공급할 필요 X / 상한섭취량 존재"],
+["수용성 비타민의 종류는?","비타민 C, B군"],
+["수용성 비타민의 특징은?","물에 녹음 / 저장 X, 소변으로 배출 / 매일 필요량 공급해야 함"],
+["비타민 A의 두 형태는?","레티놀, 카로티노이드"],
+["레티놀의 급원은?","간, 생선, 버터"],
+["카로티노이드의 급원은?","주황·녹황색 채소, 과일"],
+["비타민 A는 어디에서 대사·저장되나?","간에서 대사 (90% 이상 간에 저장)"],
+["비타민 A의 기능은?","시각기능(로돕신 생성에 필요) / 상피세포 유지 / 면역 / 항산화·항암 / 세포분화(배아단계)"],
+["비타민 A의 시각기능이란?","로돕신 생성에 필요"],
+["비타민 A 결핍증은?","야맹증, 안구건조증, 감염률↑, 성장장애"],
+["결핍 시 야맹증이 생기는 비타민은?","비타민 A"],
+["햇빛을 통해 합성할 수 있는 비타민은?","비타민 D"],
+["비타민 D2의 전구체와 급원은?","에르고스테롤\n급원: 버섯, 효모, 시리얼"],
+["비타민 D3의 전구체와 급원은?","7-디하이드로콜레스테롤\n급원: 연어, 정어리, 참치, 달걀, 간"],
+["비타민 D의 기능은?","칼슘의 항상성 유지(뼈의 대사·구조 유지에 도움)\n세포·신경 기능 유지\n일부 세포의 증식·분화 조절"],
+["비타민 D 결핍증은?","구루병, 골다공증, 골연화증"],
+["결핍 시 구루병이 생기는 비타민은?","비타민 D"],
+["비타민 E의 활성 형태는?","α-토코페롤"],
+["비타민 E는 동물과 사람에게 각각 어떤 작용을 하나?","동물 = 항불임작용\n사람 = 항산화작용"],
+["비타민 E의 급원은?","식물성기름, 곡류의 배아, 종자류, 견과류"],
+["비타민 E의 기능은?","항산화작용, 노화방지, 빈혈방지"],
+["비타민 E 결핍증은?","용혈성 빈혈"],
+["비타민 E 과잉증은?","출혈 위험, 근육쇠약, 피로"],
+["비타민 K의 주요 기능은?","혈액응고, 골격 형성"],
+["비타민 K의 급원과 합성은?","간, 푸른잎 채소, 브로콜리\n장내 미생물에 의해 합성"],
+["비타민 K가 관여하는 혈액응고 과정은?","프로트롬빈 → (비타민 K) 트롬빈 → 피브리노겐 → 피브린 → 혈액응고"],
+["비타민 K와 골격 형성의 관계는?","오스테오칼신의 합성에 관여해 골격 형성"],
+["비타민 K 농도가 낮으면?","뼈 무기질↓ → 쉽게 골절"],
+["장내 미생물에 의해 합성되는 비타민은?","비타민 K"],
+["비타민 B군 8가지는?","티아민 B1, 리보플라빈 B2, 나이아신 B3, 피리독신 B6, 판토텐산, 코발라민 B12, 엽산 B9, 비오틴"],
+["비타민 B1, B2, B3의 이름은?","B1 티아민, B2 리보플라빈, B3 나이아신"],
+["비타민 B6, B9, B12의 이름은?","B6 피리독신, B9 엽산, B12 코발라민"],
+["티아민의 기능은?","에너지 대사과정에 관여\n열량 섭취↑ → 필요량↑"],
+["티아민의 급원은?","돼지고기, 전곡류, 배아"],
+["티아민 결핍증은?","각기병(건성 각기병, 습성 각기병)"],
+["건성 각기병의 증상은?","체중감소, 무기력증, 단기기억 상실, 말초신경 무감각, 근육약화"],
+["습성 각기병의 증상은?","심장기능 저하, 부종, 호흡곤란"],
+["티아민이 결핍되기 쉬운 경우는?","백미 위주 식사, 알코올 중독"],
+["리보플라빈의 기능은?","에너지 대사과정에 관여\n성장, 건강한 피부, 시력"],
+["리보플라빈의 급원은?","간, 버섯, 녹색채소"],
+["리보플라빈 결핍증은?","구순구각염, 지루성 피부염, 눈과 신경계 장애"],
+["결핍 시 구순구각염이 생기는 비타민은?","리보플라빈(B2)"],
+["나이아신의 기능과 급원은?","에너지 대사과정에 필요\n급원: 육류, 가금류, 생선, 달걀, 우유 등 동물성 식품"],
+["나이아신 결핍증은?","펠라그라"],
+["펠라그라는 어디에서 발병하며, 그 이유는?","옥수수가 주식인 곳\n옥수수의 제한아미노산이 트립토판이기 때문"],
+["펠라그라의 증상은?","설사, 피부염, 정신혼란"],
+["엽산의 기능은?","핵산 합성, 세포분열, 적혈구 생성"],
+["엽산의 급원은?","녹색잎 채소, 간, 곡류, 두류"],
+["엽산 결핍증은?","거대적아구성 빈혈"],
+["임신기에 엽산이 결핍되면?","무뇌아, 신경관결손증 발생 가능"],
+["코발라민의 기능은?","핵산 합성, 세포분열, 적혈구 형성"],
+["코발라민의 급원은?","어육류, 달걀, 우유 등 동물성"],
+["코발라민 결핍증은?","악성빈혈, 신경장애"],
+["코발라민이 결핍되기 쉬운 이유는?","채식, 노인기의 위축성 위염, 위·장 질환으로 인한 흡수 불량"],
+["엽산과 코발라민의 공통 기능은?","핵산 합성, 세포분열, 적혈구 생성(형성)"],
+["비타민 C의 환원형과 산화형은?","환원형: 아스코르브산\n산화형: 디하이드로아스코르브산"],
+["비타민 C는 어떻게 섭취하며, 식품에는 어떤 형태로 있나?","사람은 식품으로 섭취\n식품에 산화형·환원형 모두 존재"],
+["비타민 C의 기능 4가지는?","항산화작용(유리라디칼 제거하여 세포 보호), 콜라겐 합성, 철 흡수 촉진, 면역작용"],
+["비타민 C 결핍증은?","괴혈병, 정상적 콜라겐 합성 X, 상처 치유 지연"],
+["비타민 C의 상한섭취량과 성인 권장섭취량은?","상한섭취량: 2,000mg\n성인 권장섭취량: 1일 100mg"],
+["비타민 C의 급원은?","모든 과일, 채소"],
+["비타민 C가 조리 중 쉽게 파괴되는 이유는?","가열, 철, 금속, 산소에 불안정"]
+]},
+{group:"영양", name:"지질", cards:[
+["지질 1g당 열량은?","9kcal"],
+["지질의 일반적 특징은?","물에 녹지 않고 유기용매에 녹음\n동식물이 체내에 여분의 에너지를 저장"],
+["중성지방의 구성은?","지방산 + 글리세롤"],
+["인지질의 구성은?","중성지방 + 인산"],
+["지질의 종류 3가지는?","중성지방, 인지질, 스테롤류"],
+["지방산의 정의는?","탄소를 중심으로 수소가 결합된 탄소사슬"],
+["탄소 길이에 따른 지방산 분류는?","짧은사슬 지방산, 중간사슬 지방산, 긴사슬 지방산"],
+["이중결합 수에 따른 지방산 분류는?","포화지방산, 단일불포화지방산, 다중불포화지방산"],
+["이중결합 위치에 따른 지방산 분류는?","오메가-3, 오메가-6, 오메가-9"],
+["포화지방산의 구조는?","단일결합으로만 이루어져 수소결합이 포화(= 고체)"],
+["포화지방산은 어떤 식품에 있고, 콜레스테롤에 어떤 영향을 주나?","동물성 식품에 존재\n총콜레스테롤, LDL-콜레스테롤↑"],
+["불포화지방산의 구조와 상태는?","1개 이상의 이중결합 → 액체"],
+["불포화지방산은 어떤 식품에 있고, 건강에 어떤 영향을 주나?","식물성 식품에 함유\nLDL 콜레스테롤↓, 콜레스테롤 개선, 염증 완화, 심장 건강"],
+["트랜스지방산의 특징은?","경화유, 고체\nLDL-콜레스테롤↑, HDL-콜레스테롤↓\n포화지방산보다 해로움, 가격 저렴"],
+["트랜스지방이 만들어지는 과정은?","액체 상태인 식물성 지질에 수소 첨가 → 포화도↑ → 고체 상태"],
+["시스지방산이 트랜스지방산으로 바뀌는 과정 이름은?","가수소화 과정"],
+["트랜스지방의 1일 섭취 제한량은?","2g"],
+["LDL은 올리고 HDL은 낮추는 지방산은?","트랜스지방산"],
+["필수지방산 3가지는?","리놀레산, 리놀렌산, 아라키돈산"],
+["필수지방산의 정의는?","매일 일정량 섭취가 필요한 지방산"],
+["필수지방산의 기능 4가지는?","① 세포막의 유동성·유연성·투과성 유지\n② 혈청 콜레스테롤↓\n③ 두뇌발달·시각기능 유지(ω3계)\n④ 아이코사노이드의 전구체"],
+["두뇌발달·시각기능 유지에 관여하는 지방산 계열은?","ω3계(오메가-3)"],
+["중성지방의 구조는?","글리세롤 1개 + 지방산 3개"],
+["중성지방은 몸 저장지질의 몇 %를 차지하나?","95% (가장 흔한 지질)"],
+["중성지방의 기능은?","에너지 제공·저장, 신체 보호·체온 유지, 지용성 비타민의 운반체"],
+["인지질의 특징은?","세포막의 주요 구성\n뇌와 신경조직에 많음"],
+["인지질의 종류는?","포스파티딜콜린(레시틴), 포스파티딜에탄올아민, 포스파티딜세린"],
+["대표적인 인지질과 그 급원은?","레시틴\n간, 콩, 노른자"],
+["레시틴의 쓰임과 건강 효과는?","유화제로 이용\n체내 유화작용으로 콜레스테롤 분해·배설 → 동맥경화, 뇌졸중 예방에 도움"],
+["콜레스테롤은 간에서 하루 얼마나 생성되나?","800mg"],
+["간에서 만든 콜레스테롤은 어디에 쓰이나?","400mg = 담즙산\n50mg = 스테로이드 호르몬"],
+["콜레스테롤의 급원은?","우유, 달걀, 버터"],
+["콜레스테롤의 기능 5가지는?","세포막의 구성성분, 뇌조직(미엘린)의 구성성분, 스테로이드 호르몬의 전구체, 담즙산의 성분, 비타민 D의 전구체"],
+["지질의 체내 기능 ①②는?","① 에너지 제공\n② 체온 유지, 신체 보호"],
+["지질의 '효율적인 에너지 저장' 기능이란?","중성지방 형태로 열량 저장"],
+["필수지방산이 부족하면?","각질, 가려움, 상처회복 지연, 빈혈 등"],
+["지질이 흡수를 촉진하는 영양소는?","지용성 비타민"],
+["세포·뇌·신경조직의 구성성분으로서 인지질과 콜레스테롤의 역할은?","인지질 = 세포막, 뇌조직, 신경조직\n콜레스테롤 = 호르몬, 담즙산의 전구체"],
+["지질이 포만감을 주는 이유는?","위장통과 시간↑\n(맛, 향미, 포만감 제공)"],
+["고지혈증의 정의는?","혈액 중 콜레스테롤·중성지방 등 지질 농도↑"],
+["서양인과 동양인에게 흔한 고지혈증 유형과 원인은?","서양인: 고콜레스테롤혈증(동물성 식품 섭취)\n동양인: 고중성지방혈증(과다한 당질이 중성지방으로)"],
+["동맥경화가 생기는 과정은?","혈액 중 지질 덩어리가 동맥벽에 쌓여 플라크 형성 → 내경 축소 → 동맥경화"],
+["동맥경화가 악화되면 생기는 질환은?","심근경색, 뇌출혈, 뇌졸중"],
+["1~2세의 지질 섭취 권장 비율은?","총에너지의 20~35%"],
+["3세 이상의 지질 섭취 권장 비율은?","총에너지의 15~30%"],
+["필수지방산은 총에너지 섭취량의 몇 %로 섭취하나?","1~2%"]
+]},
+{group:"영양", name:"탄수화물", cards:[
+["전분은 입에서 무엇으로 분해되나?","덱스트린, 맥아당"],
+["전분 소화의 최종 산물과 흡수 장소는?","포도당, 소장"],
+["단백질의 소화 과정은?","단백질 → (위) 짧은 단백질 → (소장) 아미노산"],
+["지방의 소화 최종 산물은?","모노아실글리세롤, 지방산"],
+["식이섬유는 소화관에서 어떻게 되나?","분해되지 않고 식이섬유 그대로 대장까지 이동"],
+["탄수화물의 다른 이름과 기본 특징은?","탄수화물 = 당질\n체내에서 가장 기본적인 영양소, 에너지 급원\n소화가 쉽고 독성 X"],
+["포도당은 어떻게 합성되고 어떤 형태로 저장되나?","광합성에 의해 합성되어 전분·섬유소 형태로 저장"],
+["단당류 3가지는?","포도당, 과당, 갈락토스"],
+["포도당의 특징은?","식물에 존재, 전분 소화로 생성, 혈당"],
+["과당의 특징은?","과일에 존재, 단맛↑\n청량음료, 고과당 콘시럽"],
+["갈락토스의 특징은?","유제품, 뇌와 신경 형성, 단맛↓"],
+["단맛이 가장 강한 단당류와 약한 단당류는?","강함: 과당\n약함: 갈락토스"],
+["이당류 3가지는?","서당, 맥아당, 유당"],
+["서당의 구성과 급원은?","포도당 + 과당\n사탕수수"],
+["맥아당의 구성과 급원은?","포도당 + 포도당\n전분의 가수분해, 곡류"],
+["유당의 구성과 급원은?","포도당 + 갈락토스\n유즙"],
+["올리고당의 정의는?","3~10개의 단당류로 이루어진 당류"],
+["올리고당의 감미료로서 특징은?","설탕과 비슷한 단맛을 가진 저에너지 감미료"],
+["올리고당이 장 건강에 좋은 이유는?","사람의 소화효소로 분해 X → 대장 내 유익한 비피도박테리아 → 장 건강 유지"],
+["올리고당이 흡수를 높이는 무기질은?","칼슘, 마그네슘"],
+["올리고당의 종류 3가지는?","프락토올리고당, 이소말토올리고당, 갈락토스올리고당"],
+["다당류 3가지는?","전분, 식이섬유소, 글리코겐"],
+["전분의 특징은?","식물의 저장물질, 포도당의 중합체\n아밀로스, 아밀로펙틴"],
+["찹쌀 전분의 구성은?","아밀로펙틴으로만 구성"],
+["멥쌀 전분의 구성 비율은?","아밀로스 : 아밀로펙틴 = 1 : 4"],
+["식이섬유소의 종류는?","셀룰로스, 헤미셀룰로스, 펙틴, 리그닌, 검류"],
+["식이섬유소가 많은 식품은?","도정하지 않은 곡류, 채소"],
+["사람은 식이섬유를 소화할 수 있나?","인간 소화효소에 의해 분해 X"],
+["소 같은 반추동물이 풀을 에너지로 쓸 수 있는 이유는?","위에 식이섬유 분해효소인 셀룰레이스가 존재 → 풀(셀룰로스)을 에너지로 사용"],
+["글리코겐은 어디에 있는 다당류인가?","인체·동물의 간, 근육에 있는 저장형 다당류 (동물성 전분)"],
+["글리코겐의 기능은?","혈당 조절, 근육에 에너지 공급"],
+["글리코겐과 구조가 비슷한 것은? 차이는?","아밀로펙틴과 구조 유사\n글리코겐이 가지 수↑"],
+["탄수화물의 체내 기능 6가지는?","① 에너지 공급\n② 에너지 저장, 혈당 유지\n③ 체단백질 보호\n④ 케톤증 방지\n⑤ 음식에 단맛·향미 제공\n⑥ 변비 예방"],
+["탄수화물은 섭취 에너지의 몇 %를 차지하나?","60~70%"],
+["포도당을 주요 에너지원으로 쓰는 기관은?","뇌, 적혈구"],
+["사용 후 남은 포도당은 어떻게 되나?","글리코겐 형태로 저장 → 공복 시 분해되어 혈당 유지"],
+["글리코겐이 충분할 때 남는 포도당은?","지방조직에 저장"],
+["탄수화물이 부족하면 체단백질은 어떻게 되나?","단백질 우선 분해 → 포도당 생성 → 에너지원 이용"],
+["케톤증이 생기는 이유는?","탄수화물을 적게 섭취 → 지방이 분해될 때 완전히 산화 X → 케톤체 생성"],
+["케톤증 방지를 위한 탄수화물 최소 섭취량은?","50~100g"],
+["탄수화물이 변비를 예방하는 원리는?","식이섬유 섭취 → 장내 대변량↑"],
+["당뇨병의 정의는?","다식·다뇨·다갈의 증상이 나타나는 만성질환"],
+["탄수화물이 세포로 들어가기까지의 과정은?","탄수화물 섭취 → 소화 → 포도당으로 분해 → 혈액으로 유입 → 인슐린 → 세포 내로 이동"],
+["인슐린이 부족하면?","고혈당 → 소변으로 당 배설"],
+["당뇨 진단 기준 혈당은?","공복: 126 이상\n식사 후: 200 이상"],
+["유당불내증이 생기는 과정은?","유당 분해효소 부족 → 소장에서 소화되지 못한 유당 → 대장으로 이동 → 박테리아에 의해 발효"],
+["충치가 생기는 과정은?","플라그 생성하는 구강세균 → 설탕·전분 분해 → 산 생성 → 에나멜질 공격 → 충치"],
+["충치 예방에 도움이 되는 감미료는?","자일리톨"],
+["하루 당 섭취 권고량은?","50g 이내 (각설탕 12.5개)"],
+["밥 1공기에 든 탄수화물 양은?","70g"],
+["영양감미료와 합성감미료의 차이는?","영양감미료: 열량 제공\n합성감미료: 열량 제공 X"]
+]},
+{group:"영양", name:"식생활과 건강", cards:[
+["WHO의 건강 정의는?","육체적·정신적·사회적으로 완전히 양호한 상태"],
+["건강 결정 주요인 4가지와 비율은?","생활습관 50%, 환경 20%, 생물학적 20%, 보건의료 10%"],
+["건강 결정 요인 중 가장 비중이 큰 것은?","생활습관(50%)"],
+["현대인을 '반건강인'으로 만드는 원인은?","잘못된 식생활, 스트레스, 과중한 업무, 환경오염"],
+["반건강인이 환자 또는 건강인이 되는 갈림길은?","흡연·잘못된 식생활 → 환자\n올바른 식생활·금연 → 건강인"],
+["영양소의 세 가지 역할은?","열량소: 에너지 공급\n조절소: 신체기능 조절\n구성소: 신체 구성성분"],
+["에너지 공급을 담당하는 영양소는? (노트 그림 기준)","탄수화물 (+ 단백질, 지질)"],
+["성장과 조직의 유지를 담당하는 영양소는?","물, 무기질 (+ 단백질, 지질)"],
+["대사과정의 조절을 담당하는 영양소는?","비타민, 무기질 (+ 단백질, 지질)"],
+["세 가지 역할에 모두 관여하는 영양소는?","단백질, 지질"],
+["기대수명이란? (수치 포함)","환경 개선과 의료서비스로 연장된 수명\n83.4세"],
+["건강수명이란? (수치 포함)","질병·장애에 의한 제약 없이 건강하게 살 것으로 기대되는 기간\n73.1세"],
+["만성질환의 예는?","비만, 고혈압, 당뇨병, 이상지질혈증, 암"],
+["만성질환의 특징은?","단기간 치료 X\n장기간, 죽을 때까지"],
+["만성질환이 생기는 단계는?","안 좋은 생활습관 → 선행단계 → 만성질환"],
+["급격한 생활환경 변화가 영양상태에 준 영향은?","영양상태를 전반적으로 개선했지만 영양불균형에 의한 만성질환↑"],
+["영양불균형에 의한 만성질환 3가지는?","① 본태성 고혈압\n② 만성 신장질환\n③ 인슐린-비의존성 당뇨"],
+["비만·당뇨·고콜레스테롤혈증은 어떤 질환의 선행질환인가?","심혈관 질환\n→ 연령↑ 유병률↑"],
+["악성신생물(암)의 사망률 순위와 정의는?","사망률 1위\n비정상 세포가 억제되지 않고 증식"],
+["암의 요인은?","짠 음식 섭취↑, 알코올, 흡연 등"],
+["만성질환의 주요 식생활 원인은?","지방 섭취 과다\n식이섬유·채소·과일 섭취 부족"],
+["건강한 식생활 실천 3가지는?","균형식, 다양한 식품, 적절한 양 섭취"],
+["ABCDE는 각각 무엇인가?","A 충분 / B 균형 / C 에너지 조절 / D 다양 / E 운동"],
+["식품구성자전거의 의미는?","균형식의 의미 제공\n면적 = 권장섭취횟수"],
+["식품구성자전거 2015 제정에서 바뀐 점은?","유지·당류를 제외해 5가지로"],
+["6가지 기초식품군은?","곡류 / 고기·생선·달걀·콩 / 채소·과일 / 우유·유제품 / 유지·당류 / 수분"],
+["한국인 영양소 섭취기준의 개정 주기는?","5년 단위로 재·제정"],
+["2025 한국인 영양소 섭취기준의 영양소 수와 구성은?","총 41종\n에너지·다량영양소 12종, 비타민 13종, 콜린, 무기질 15종"],
+["2025 한국인 영양소 섭취기준의 목적은?","안전하고 충분한 영양을 확보하는 기준 제시"],
+["평균필요량(EAR)의 산출 방식은?","건강한 사람들의 영양소 필요량 중앙값에서 산출\n(필요량에 대한 과학적 근거가 있어야)"],
+["평균필요량(EAR)은 인구집단의 몇 %의 필요량을 충족하나?","50%"],
+["권장섭취량(RNI)은 인구집단의 몇 %의 필요량을 충족하나?","약 97~98%"],
+["권장섭취량(RNI)은 어떻게 계산하나?","평균필요량에 2배의 표준편차를 더한 값"],
+["충분섭취량(AI)이란?","건강을 유지하는 데 충분한 양을 설정\n근거 부족 시 건강한 사람들의 영양소 섭취량 중앙값을 기준"],
+["상한섭취량(UL)이란?","유해한 영향이 없는 최대 섭취 기준\n과량 섭취의 유해 영향에 대한 과학적 근거가 있어야"],
+["EAR, RNI, AI, UL의 우리말 이름은?","EAR 평균필요량\nRNI 권장섭취량\nAI 충분섭취량\nUL 상한섭취량"],
+["식사구성안의 정의는?","일반인에게 영양 섭취기준에 만족할 식사를 제공하도록 식품군별 대표식품과 섭취횟수를 이용해 식사의 기본 구성 개념을 설명"],
+["식사구성안의 탄수화물·단백질·지방 비율은?","탄수화물 50~65%\n단백질 10~20%\n지방 15~30% (1~2세: 20~35%)"],
+["영양표시제의 목적은?","소비자가 영양적 가치 있는 가공식품을 선택하게 식품 표시 의무화"],
+["영양표시 항목은?","탄수화물, 단백질, 지방, 포화지방, 트랜스지방, 콜레스테롤, 나트륨, 당류, 열량"],
+["영양 강조표시에 쓰는 표현은?","'무-', '저-', '고-', '-함유'\n'덜', '더', '강화', '첨가'"],
+["열량 '저' 기준은?","100g당 40kcal / 100ml당 20kcal 미만"],
+["열량 '무' 기준은?","100g당 4kcal 미만"],
+["나트륨 '저' 기준은?","100g당 120mg 미만"],
+["나트륨 '무' 기준은?","100g당 5mg 미만"],
+["당 '무' 기준은?","100g당 0.5g 미만"],
+["지방 '저' 기준은?","100g당 3g / 100ml당 1.5g 미만"],
+["지방 '무' 기준은?","100g당 0.5g 미만"],
+["트랜스지방 '저' 기준은?","100g당 0.5g 미만"],
+["포화지방 '저' 기준은?","100g당 1.5g 미만, 열량의 10% 이하"],
+["포화지방 '무' 기준은?","100g당 0.1g 미만"],
+["영양소 밀도의 공식은?","영양소 밀도 = 영양소 함량 ÷ 공급 에너지"],
+["영양소 밀도는 무엇에 쓰이나?","식품의 영양소 가치 비교"]
+]},
+{group:"의사소통", name:"대인간 의사소통 개관", cards:[
+["의사소통 교류의 박탈은 어떤 결과를 가져오나?","삶 전체에 영향"],
+["독일 황제 프리드리히 2세의 실험 내용은?","각국이 서로 다른 언어를 쓰는 상황에서, 아기들이 아무런 교육 없이 어떤 언어를 쓰는지 실험"],
+["탐험가 Carl Jackson의 51일 대서양 횡단 사례가 보여 주는 것은?","외로움 때문에 둘째 달부터 괴로움\n→ 우리 모두 관계와 의사소통을 필요로 함"],
+["의사소통 욕구 4가지는?","① 신체적 욕구\n② 정체성 욕구\n③ 사회적 욕구\n④ 현실적 목표"],
+["사회적 관계가 결여되면 수명은 얼마나 줄어드나?","3.7년"],
+["사회적 관계 결여가 신체에 미치는 영향은?","수명 3.7년↓, 관상동맥 건강 위협, 감기 확률 4배↑"],
+["이별한 사람들의 정신적 질병 확률은?","5~10배↑"],
+["혼자 사는 사람에게 높아지는 위험은?","폐렴, 암 발생률, 외과수술 확률↑"],
+["매일 10분 사교관계를 형성하면?","기억력, 지적능력↑"],
+["긍정적 관계 형성의 효과 3가지는?","매일 10분 사교 → 기억력·지적능력↑\n타인과의 대화 → 외로움과 수반 질환↓\n애정 표현을 많이 들을수록 스트레스↓"],
+["개인적 관계에서 '질'과 '양'의 관계는?","모든 사람이 동일한 양의 접촉을 필요로 하지 않음\n질이 양만큼 중요, 행복에 필수적"],
+["정체성 욕구란?","의사소통은 우리가 누구인지 배우는 유일한 방법\n타인의 반응에 근거해 우리가 누군지 결정\n타인과 의사소통 박탈 → 인식 X"],
+["정체성 욕구의 대표 사례는?","프랑스 아베이롱 지역의 야생소년"],
+["메시지의 영향력이 가장 강한 시기는?","어릴 때 (타인의 영향력은 평생)"],
+["사회적 욕구란?","의사소통을 통해 쾌락, 애정, 동료애, 도피, 휴식 등 다양한 사회적 욕구 충족"],
+["교육수준과 관계망의 관계는?","교육수준↑ → 폭넓고 다양한 관계망, 관계적 삶의 수준↑"],
+["현실적 목표(도구적 목표)란?","의사소통은 타인이 우리가 원하는 방식대로 행동하도록 하기 위해 접근하는 방법"],
+["현실적 목표와 관련된 이론은?","에이브러햄 매슬로우의 욕구위계론"],
+["매슬로우 욕구위계 5단계(아래부터)는?","생존 욕구 → 안전 욕구 → 애정 → 자존감 → 자아실현"],
+["의사소통의 정의는?","본질적으로 의미 창출을 위해 메시지를 사용하는 것"],
+["의사소통이 적용되는 맥락은?","공개연설, 소집단, 대중매체 등 다양한 맥락"],
+["선형적 관점이란?","의사소통을 발신자가 수신자에게 하는 어떤 행동으로 묘사"],
+["선형적 모형의 구성 요소는?","발신자 → 통로 → 메시지 → 통로 → 수신자 (+ 소음)"],
+["교류적 관점이란?","의사소통은 일방적·순차적으로 오가는 것 X\n사람들이 메시지를 주고받는 것"],
+["통로는 어느 모형에서 중요한가?","선형적·교류적 모형 둘 다"],
+["소음의 종류는?","물리적 소음, 심리적 소음, 생리적 소음"],
+["의사소통 패턴과 관계의 관계는?","의사소통자들이 만들어 낸 의사소통 패턴이 그들의 관계에 영향"],
+["대인간 의사소통의 교류적 정의는?","관련된 사람들이 상이하지만 중첩되는 환경에 있으며, 메시지의 교환으로 관계를 형성하는 것"],
+["대인간 의사소통은 양적인가, 질적인가?","양적(형식)이 아니라 질적(내용)"],
+["대인간 의사소통이 발생하는 조건은?","맥락이나 관련된 사람의 수와 상관없이 서로를 독특한 개인으로 여기고 받아들일 때"],
+["대인간 의사소통의 반대는?","집단·대중·공적 의사소통 X → 비인간적 의사소통"],
+["비인간적 의사소통이란?","양적인 의사소통\n예: 페이스북 같은 웹사이트로 피상적인 비인간적 관계 맺기 (양 ≠ 질)"],
+["대부분의 관계는 인간적인가, 비인간적인가?","인간적이지도 비인간적이지도 않은, 두 극단의 사이에 있음"],
+["질적 대인간 의사소통을 구분하는 5가지 기준은?","① 독특성\n② 대체불가능성\n③ 상호의존성\n④ 정보공개의 양\n⑤ 내재적 보상"],
+["'내재적 보상'의 뜻은?","그 관계 자체가 중요"],
+["의사소통의 원리 5가지는?","① 의도적 / 비의도적\n② 하지 않는 것은 불가능\n③ 되돌릴 수 X\n④ 반복할 수 X\n⑤ 내용적 차원 / 관계적 차원"],
+["'의사소통을 하지 않는 것은 불가능하다'는 뜻은?","의도적·비의도적 행동 모두 메시지를 보내고 있음"],
+["'잘못된, 결렬된 의사소통'이란?","의사소통이 부적절, 비효율, 불만족스러운 것"],
+["의사소통을 반복할 수 없는 이유는?","의사소통은 진행 중인 과정이기 때문"],
+["내용적 차원이란?","분명하게 논의하고 있는 정보"],
+["관계적 차원이란?","타인에 대해 어떻게 느끼는지"],
+["의사소통에 대한 오해 4가지는?","① 많이 하는 게 항상 더 좋은 것 X\n② 의미는 말 속에 있는 것 X\n③ 성공적 의사소통이라도 항상 오해가 없는 것 X\n④ 의사소통이 모든 문제를 해결하는 것 X"],
+["유능한 의사소통의 정의는?","그 관계를 유지·향상시키는 식으로 개인의 목적을 달성"],
+["의사소통 역량의 특징 3가지는?","① 이상적으로 의사소통하는 방식은 X(본인의 가치를 반영해야)\n② 역량은 상황적(개인 성격 특질로 생각 X)\n③ 역량은 배울 수 있다"],
+["유능한 의사소통자의 특징 7가지는?","① 폭넓은 범위의 행동\n② 가장 적절한 행동을 택하는 능력\n③ 행동을 수행하는 기술\n④ 인지적 복합성\n⑤ 감정이입\n⑥ 자기감시\n⑦ 몰입"],
+["'폭넓은 범위의 행동'이란?","다양한 방법으로 대처"],
+["'가장 적절한 행동을 택하는 능력'이란?","상황에 맞게 행동을 택함"],
+["'행동을 수행하는 기술'이란?","학습한 것을 실행에 옮김"],
+["'인지적 복합성'이란?","상대 의사소통에 대해 여러 가지를 파악"],
+["'자기감시'란?","\"내가 어떻게 하고 있지?\" 스스로 점검"],
+["'몰입'이란?","관계에 몰입, 메시지에 관심"],
+["문화간 의사소통 역량 4가지는?","① 동기\n② 모호성에 대한 인내\n③ 개방성\n④ 지식·기술"]
+]},
+{group:"의사소통", name:"소셜 미디어", cards:[
+["소셜 미디어의 정의는?","사용자들이 온라인 의사소통을 하는 데 사용하는 의사소통의 한 형태"],
+["매개된 의사소통이란?","전자적 매개체로 사람들을 연결시키는 모든 통로"],
+["오늘날 사람들은 매개된 의사소통을 어떻게 생각하나?","가치 있고 필수적이라 생각"],
+["초창기 이론가들은 매개된 의사소통을 어떻게 보았나?","첨단장비가 대인관계에 적합하지 않다고 생각 → 비인간적, 과업지향적 관계 초래"],
+["초창기 이론가들이 그렇게 본 이유는?","목소리, 몸, 다른 행동을 걸러서 → 개인관계에 부적합한 도구라서"],
+["매개된 의사소통과 면대면 의사소통의 유사점 3가지는?","① 동일 목표\n② 유사한 과정(교류적 의사소통 모형)\n③ 유사한 원리"],
+["두 의사소통의 '유사한 원리'란?","불가역성, 응답하지 않아도 메시지를 보냄"],
+["매개된 의사소통의 결과 2가지는?","① 탈억제\n② 과다한 개인적 의사소통"],
+["'과다한 개인적 의사소통'이란?","자신들의 과업을 완수하는 데 긍정적 관계를 빠르게 형성 가능\nbut 관계적 득실에 대한 많은 정보 제공"],
+["매개된 의사소통의 혜택 3가지는?","① 더 많은 관계 기회\n② 관계 유지·강화\n③ 사회적 지지"],
+["매개된 의사소통의 단점 5가지는?","① 피상적 관계(양적)\n② 사회적 고립\n③ 관계의 악화\n④ 속임\n⑤ 스토킹, 괴롭힘"],
+["매개된 의사소통에 영향을 미치는 요인 2가지는?","성별, 나이"],
+["나이와 소셜 미디어 사용도의 관계는?","젊을수록 사용도↑"],
+["소셜 미디어에서의 역량 2가지는?","① 긍정적 관계를 함양하기(네티켓 지키기)\n② 자신을 보호하기"],
+["네티켓 지키기의 내용 3가지는?","온전히 집중할 것을 원하는 상대의 욕구 존중\n공손한 말투 사용\n주변인 침해 X"],
+["자신을 보호하기의 내용 3가지는?","게시물을 올리기 전에 생각\n온라인에서 본 것 검증\n매개된 시간과 면대면 시간의 균형 유지"],
+["매체를 비교하는 세 가지 기준은?","동시성, 풍부/빈약, 영구성"],
+["동시성이 있는 매체는?","면대면, 영상통화, 전화"],
+["동시성이 없는 매체는?","음성메일, 메시지, 이메일, SNS 사이트"],
+["면대면 의사소통의 동시성·풍부도·영구성은?","동시성 O, 풍부, 영구성 낮음"],
+["영상통화·전화의 동시성·풍부도·영구성은?","동시성 O, 보통 풍부, 영구성 낮음"],
+["음성메일의 동시성·풍부도·영구성은?","동시성 X, 보통 빈약, 영구성 보통"],
+["메시지의 동시성·풍부도·영구성은?","동시성 X, 빈약, 영구성 보통"],
+["이메일·SNS의 동시성·풍부도·영구성은?","동시성 X, 빈약, 영구성 높음"],
+["가장 풍부한 매체와 가장 영구성이 높은 매체는?","가장 풍부: 면대면\n영구성 높음: 이메일, SNS 사이트"]
+]},
+{group:"의사소통", name:"의사소통과 정체성", cards:[
+["자아개념을 이루는 요소는?","외모, 사회적 특질, 재능, 지적능력, 신념, 사회적 역할, 신체적 상태"],
+["자기개념의 정의는?","자신을 보는 상대적으로 안정된 관점"],
+["자기개념이 중요한 이유는?","우리가 가진 가장 기본적인 것, 이것 없이는 세상과 관계할 수 X"],
+["자기존중감의 정의는?","자신의 가치에 대한 평가\n자신이 자신의 자질을 어떻게 보느냐에 따라 결정"],
+["자기존중감이 높은 사람의 특징은?","다른 사람을 좋게 생각, 타인도 자신을 좋게 볼 거라 생각"],
+["자기존중감이 낮은 사람의 특징은?","자신을 싫어하고 타인도 자기를 싫어할 거라 생각 → 적대감\n자신을 좋게 보이게 하는 방법으로 타인을 무시"],
+["자기존중감이 지나치게 높은 사람의 특징은?","더 좋은 인상을 주고 친구를 사귀며 멋진 사람을 알 거라 생각\n→ 자기 가치가 도전받을 때 잘난 체 → 타인을 짜증나게 함"],
+["생물학과 자기의 관계는?","우리는 특정 방식으로 의사소통하게 어느 정도 프로그래밍되어 있는데, 이는 생물학적 성격 특질에 의해 나타남"],
+["사회화와 자기개념의 관계는?","다른 사람의 메시지가 자기평가에 핵심적인 역할"],
+["사회화로 자기개념이 형성되는 3가지 방식은?","① 반영평가\n② 중요한 타인\n③ 사회비교"],
+["반영평가란?","다른 사람이 우리를 보는 방식을 통해 자기평가"],
+["중요한 타인이란?","우리가 의견을 중시해야 하는 사람으로부터의 메시지가 자기개념에 영향"],
+["사회비교란?","다른 사람과 비교해 자신이 어떤지 평가\n→ 비교하는 참고 집단이 자신에 대한 견해 형성에 중요한 역할"],
+["자기개념의 특징 2가지는?","① 자기개념은 주관적이다\n② 자기개념은 변화에 저항한다"],
+["자기개념이 주관적인 이유(왜곡된 자기평가의 원인) 4가지는?","① 낡은 정보\n② 왜곡된 피드백\n③ 완벽주의\n④ 사회적 기대"],
+["'사회적 기대'가 자기평가를 왜곡하는 방식은?","완벽주의 성향의 사회는 자신의 강점을 경시하는 사람에게 보상 → 자신의 단점은 얘기하고, 성취는 하찮게"],
+["'자기개념은 변화에 저항한다'는 뜻은?","기존의 자기개념이 낡은 것이어도 변하지 않는 경향"],
+["인지적 보수주의란?","자존감↑ 사람은 자신을 호의적으로 보는 사람 선호\n자존감↓ 사람은 자신을 비판적으로 보는 사람과 상호작용"],
+["자기개념과 반대되는 정보를 받으면 어떻게 하나?","① 자기개념 바꾸기\n② 거부해서 기존 자기개념 유지"],
+["긍정적인 자기상을 받아들이는 법 4가지는?","① 자신에 대해 현실적인 관점\n② 현실적인 기대를 해라\n③ 달라지려는 의지를 가져라\n④ 달라질 수 있는 기술을 개발하라"],
+["'자신에 대해 현실적인 관점'을 가지는 방법은?","자신의 강점을 주기적으로 인지\n긍정적 피드백을 해 줄 사람을 주위에"],
+["'현실적인 기대'를 하는 방법은?","전문가와 비교 X"],
+["문화에 따른 정체성 차이는?","서양: 개인주의\n동양: 집단주의"],
+["자기충족적 예언의 정의는?","자기개념은 성격에 영향력을 행사해서 자신과 타인의 미래 행동에도 영향을 미침"],
+["자기충족적 예언의 단계 4가지는?","① 기대하기\n② 그 기대에 따라 행동\n③ 기대의 실현\n④ 기존의 기대를 강화"],
+["자기충족적 예언의 유형 2가지는?","① 자발적 예언\n② 다른 사람에게 하는 예언"],
+["자발적 예언이란?","자신의 기대가 자신의 행동에 영향"],
+["공적 자기란?","표현적 자기, 타인에게 보여 주고 싶은 우리의 모습"],
+["사적 자기란?","지각된 자기, 자기개념의 한 모습"],
+["인상관리의 특징 3가지는?","① 우리는 다수의 정체성을 구성하려 노력\n② 인상관리는 공동의 작업이다\n③ 인상관리는 의식적/무의식적"],
+["'인상관리는 공동의 작업'이라는 뜻은?","정체성과 관련된 의사소통은 사람들이 모든 대화에서 상대의 행동에 대한 반응으로 자신의 정체성을 구성한다는 점"],
+["인상관리가 무의식적일 수 있음을 보여 준 연구는?","소금이 많이 들어간 샌드위치를 먹을 때, 혼자 있을 때는 표정 변화 X"],
+["인상관리의 이유 4가지는?","① 관계를 시작·관리\n② 다른 사람의 순응을 얻기 위해\n③ 다른 사람의 체면을 지키려고\n④ 새로운 자기를 탐색하려고"],
+["면대면 인상관리 방식 3가지는?","① 방식: 말, 비언어적 행동\n② 외모\n③ 환경\n→ 타인이 우리를 보는 방식에 영향을 미치기 위해 사용"],
+["인상관리와 정직성의 관계는?","특정 상황에서 어떤 모습으로 의사소통할지 결정한 후에 하는 것"],
+["자기개방의 정의는?","타인이 모르고 자신에게 중요한 정보를 타인에게 의도적으로 공유"],
+["관계의 강도를 판단하는 방법은?","공유하는 정보의 양"],
+["자기개방의 필수조건 3가지는?","① 의도적\n② 정보는 중요해야\n③ 타인이 모르는 정보여야"],
+["자기개방의 노출 방법(모델) 2가지는?","① 사회적 침투\n② 조하리의 창"],
+["사회적 침투 모델에서 개방의 두 차원은?","개방 정보의 폭(범위), 개방 정보의 깊이"],
+["조하리의 창 4영역은?","1. 공개된 영역\n2. 맹점 영역\n3. 숨기는 영역\n4. 미지의 영역"],
+["조하리의 창 '공개된 영역'이란?","나도 알고 상대도 앎"],
+["조하리의 창 '맹점 영역'이란?","나는 모르고 상대는 앎 → 타인을 통해 정보 학습"],
+["조하리의 창 '숨기는 영역'이란?","나는 알고 상대는 모름 → 자기개방을 통해 공개"],
+["조하리의 창 '미지의 영역'이란?","둘 다 모름 → 추론"],
+["자기개방의 혜택 6가지는?","① 정화\n② 상호성\n③ 자기명료화\n④ 자기타당화\n⑤ 관계를 만들고 관리\n⑥ 사회적 영향"],
+["자기개방의 혜택 '정화'란?","적절히 다루면 심리적·정신적 안정감"],
+["자기개방의 혜택 '상호성'이란?","상대가 내 정보를 솔직히 털어놓는다고 느끼면 같이 공개"],
+["'자기명료화'와 '자기타당화'의 차이는?","자기명료화: 자신의 믿음·의견 공개 → 그것을 명료화\n자기타당화: 자기에 대한 믿음 확인"],
+["자기개방의 혜택 '사회적 영향'이란?","개인정보 공개 → 타인·상황의 통제↑"],
+["자기개방의 위험 5가지는?","① 거부\n② 부정적 인상\n③ 관계만족의 감소\n④ 영향력의 손실\n⑤ 다른 사람에게 상처주기"],
+["자기개방의 위험 '영향력의 손실'이란?","숨겨 둔 약점 고백"],
+["자기개방의 지침 6가지는?","① 그 사람이 나에게 얼마나 중요?\n② 개방의 양·유형이 적절?\n③ 개방의 위험이 합리적?\n④ 효과가 긍정적?\n⑤ 상호적?\n⑥ 개방해야 한다는 도덕적 의무감을 가지고 있나?"],
+["자기개방의 대안 4가지는?","침묵, 거짓말, 얼버무리기, 암시 (+ 회피의 윤리학)"],
+["침묵은 언제 쓰나?","진실을 말해서 관계가 위태로울 때"],
+["거짓말은 언제 쓰나?","선의의 거짓말이 필요할 때"],
+["얼버무리기는 언제 쓰나?","거짓말도 솔직한 말도 못할 때"],
+["암시는 언제 쓰나?","진실이 초래하는 불편함을 모면하고 싶을 때"]
+]},
+{group:"의사소통", name:"지각", cards:[
+["지각과정의 4단계는?","① 선택\n② 조직화\n③ 해석\n④ 협상"],
+["지각과정 ① 선택이란?","지각의 첫 단계, 어떤 느낌에 주의를 기울일지를 말함"],
+["선택 단계에서 주의를 끄는 것과 무시하는 것은?","① 강력한 자극\n② 반복적인 자극\n③ 동기\n④ 다른 단서들은 무시"],
+["지각과정 ② 조직화란?","선택한 정보를 의미 있는 방식으로 배열, 분류"],
+["지각적 도식이란?","우리가 사용하는 정보 정리의 틀\n우리의 사고방식과 타인과의 의사소통 방식을 결정"],
+["조직화 과정에서 고정관념은 어떤 결과를 낳나?","하나의 범주화, 일반화를 초래\n현실에 기초할 수도 있지만 종종 타당성 없는 주장을 만듦"],
+["방점(구두점)이란?","의사소통의 상호작용에서 원인과 결과에 대한 결정을 가능하게 하기 위해 사용"],
+["지각과정 ③ 해석이란?","감각자료에 의미를 부여"],
+["해석에 영향을 주는 요인 8가지는?","① 상대방의 몰입 정도\n② 개인적 경험\n③ 인간 행동에 대한 가정\n④ 태도\n⑤ 기대\n⑥ 지식\n⑦ 자기개념\n⑧ 관계만족"],
+["지각과정 ④ 협상이란?","지각은 홀로 발생 X\n사람들이 서로의 지각에 영향을 미치고 공유된 지각을 얻고자 노력하는 과정 속에서 지각의 상당 부분이 만들어짐"],
+["협상에서 '공유된 이야기'의 의미는?","순조롭게 의사소통할 수 있는 최상의 기회 제공"],
+["지각에 영향을 미치는 요인 4가지는?","① 정보에 대한 접근\n② 생리적 영향\n③ 문화적 차이\n④ 사회적 역할"],
+["정보에 대한 접근이 지각에 미치는 영향은?","우리는 알고 있는 것만 이해 가능\n다른 사람의 역할이 여러 개일 때 그들에 대한 새로운 정보를 얻음\nSNS는 지각에 영향을 미치는 새로운 정보 제공"],
+["지각에 영향을 미치는 생리적 요인은?","감각(개인차 O), 심리적 영향, 연령, 건강과 피로, 배고픔, 생물학적 순환"],
+["생물학적 순환이 지각에 영향을 주는 이유는?","생리적 이유, 호르몬 순환"],
+["문화적 차이가 지각에 미치는 영향은?","모든 문화는 그들만의 세계관 O, 세계를 바라보는 그들만의 방식 O"],
+["문화적 차이와 관련해 경계할 태도는?","자민족중심주의"],
+["사회적 역할이 지각에 영향을 주는 방식은?","우리는 태어나면서부터 각자 수행하는 역할을 직간접적으로 교육받아 옴"],
+["사회적 역할의 종류 3가지는?","성역할, 직업적 역할, 관계적 역할"],
+["직업적 역할이 지각에 영향을 주는 이유는?","직업의 종류, 경험·지식의 차이"],
+["관계적 역할이란?","내가 누구인지 정의하면서 내 지각에도 영향\n연인관계에서 역할은 지각에 막대한 영향"],
+["사회적 역할이 지각에 미치는 긍정적·부정적 영향은?","긍정적: 원활한 사회, 안정감\n부정적: 융통성 X → 다른 사람의 관점 이해 X"],
+["기본귀인오류란?","타인의 행동에 대해 귀인할 때 그 사람의 기질, 성격을 통해 설명하려는 경향성"],
+["기본귀인오류의 예와 관련 개념은?","'원래 그런 사람'이라고 생각\n'행위자-관찰자 편향'과도 관련"],
+["지각의 공통점(공통 경향) 5가지는?","① 관대한 자기지각\n② 첫인상에 대한 집착\n③ 가정된 유사성\n④ 기대의 영향\n⑤ 분명한 요인의 영향"],
+["첫인상이 긍정적일 때와 부정적일 때 생기는 효과는?","긍정적 → 후광효과\n부정적 → 악마효과"],
+["첫인상에 대한 집착을 줄이는 방법은?","개방된 사고를 유지, 자신의 생각이 틀리면 기꺼이 그 생각을 바꿈"],
+["가정된 유사성: 자존감이 낮은 사람과 높은 사람은?","자존감↓: 다른 사람도 자기를 비우호적이게 볼 거라 생각\n자존감↑: 다른 사람도 자기를 긍정적이게 볼 거라 생각"],
+["가정된 유사성이란?","다른 사람의 관점이 자기의 관점과 유사하다는 잘못된 가정을 다양한 상황에 적용하는 것"],
+["기대의 영향이란?","기대가 지각에 미치는 영향은 긍정적이거나 부정적 → 자기충족적 예언을 유발할 수 O"],
+["분명한 요인의 영향이란?","주의를 끄는 상황으로부터 주의를 사로잡는 자극을 선택\n→ 가장 명백한 요인이 반드시 가장 중요한 요인인 것은 X"],
+["지각점검의 목적은?","자신의 해석을 좀 더 잘 다룰 수 있음"],
+["지각점검의 3요소는?","① 주목한 행동에 대해 기술\n② 거기에 대한 적어도 두 개의 가능한 해석\n③ 그에 대한 설명 요구"],
+["지각점검에서 가능한 해석은 최소 몇 개를 제시하나?","두 개"],
+["지각점검의 효과 2가지는?","더 정확한 지각을 가져옴\n다른 사람의 체면을 지켜 그들의 방어를 최소화"],
+["지각점검의 고려사항 4가지는?","① 완성도\n② 비언어적 일치\n③ 문화적 규칙\n④ 체면의 유지"],
+["지각점검 고려사항 '완성도'란?","때로 지각점검이 효과적이기 위해 앞서 말한 요소가 모두 필요한 건 X"],
+["지각점검 고려사항 '비언어적 일치'란?","말·행동 모두 개방적이어야"],
+["지각점검 고려사항 '문화적 규칙'이란?","서양 - 직접적\n동양 - 간접적"],
+["지각점검 고려사항 '체면의 유지'란?","다른 사람을 직접적으로 공격 X\n직접적인 대립보다 상대의 행동을 덜 위협하는 방식"],
+["감정이입(공감)의 정의는?","다른 사람의 감정을 재현하는 능력\n세상을 다른 사람의 관점으로 경험"],
+["감정이입의 3차원은?","① 조망수용\n② 정서적 차원\n③ 타인의 안녕에 대한 진정한 관심"],
+["조망수용이란?","타인의 관점을 취해 보려는 노력\n판단중지를 요구"],
+["조망수용은 집단주의와 개인주의 중 어디에서 더 잘 나타나나?","집단주의 > 개인주의"],
+["감정이입의 정서적 차원이란?","다른 사람의 감정을 좀 더 가까이에서 경험하도록 도움"],
+["공감과 동정의 차이는?","공감: 그들의 관점으로 그들의 상황을 봄\n동정: 우리의 관점으로 봄"],
+["공감 능력은 타고나는가, 발달하는가?","선천적으로 타고나지만 환경적 경험이 이해능력을 발달시킴\n인간은 공감하도록 유전적으로 내장"],
+["Daniel Goleman이 말한 사회적 지능의 핵심은?","공감에 대한 선천적 경향성을 발달시키는 것"],
+["인지적 복잡성이란?","특정 문제를 바라보는 다양한 틀을 구축 → 만족스러운 의사소통↑"],
+["인지적 복잡성의 장점 3가지는?","① 타인의 행동을 이해할 방법이 많을수록 그들의 관점에서 세상을 볼 가능성↑\n② 상황을 더 정확하게, 덜 단순하게 기술하게 도움\n③ 인지적으로 복잡한 사람이 빈정대는 말을 더 잘 보고 이해"],
+["인지적 복잡성은 향상될 수 있나?","훈련을 통해 향상 가능"],
+["베개법의 5단계는?","① 나는 맞고 너는 틀려\n② 너는 맞고 나는 틀려\n③ 둘 다 맞고 둘 다 틀려\n④ 그 문제는 중요치 않아\n⑤ 네 가지 모든 관점에 진실이 있어"],
+["베개법 ① '나는 맞고 너는 틀려'란?","우리가 문제를 볼 때 일반적으로 취하는 관점"],
+["베개법 ② '너는 맞고 나는 틀려'란?","상대 관점에서 보고 상대의 강점 확인, 자신의 결점 확인"],
+["베개법 ③ '둘 다 맞고 둘 다 틀려'란?","두 개의 관점에 모두 장·단점이 있다"],
+["베개법 ④ '그 문제는 중요치 않아'란?","그 문제가 생각만큼 중요하지 않다는 것을 깨달으면 논쟁의 중요성↓"],
+["베개법 ⑤ '네 가지 모든 관점에 진실이 있어'란?","하나의 문제를 다섯 가지 관점으로 보면 새로운 통찰 획득"]
+]}
+];
+
+const KEY="nutri-comm-cards-v2";
+let store={};
+try{store=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){store={}}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){}};
+let ti=0, order=[], pos=0, onlyWrong=false;
+try{const t=+localStorage.getItem(KEY+"-t");if(DATA[t])ti=t}catch(e){}
+
+const $=id=>document.getElementById(id);
+const res=()=>store[ti]||(store[ti]={});
+
+function buildTopics(){
+  const groups=[...new Set(DATA.map(d=>d.group))];
+  $("topics").innerHTML=groups.map(g=>`<div style="margin-bottom:10px"><p class="grouplabel">${g}</p><div class="chips">${
+    DATA.map((d,i)=>d.group===g?`<button class="chip" type="button" data-i="${i}" aria-pressed="${i===ti}">${d.name}<span class="cnt">${d.cards.length}</span></button>`:"").join("")}</div></div>`).join("");
+  $("topics").querySelectorAll(".chip").forEach(b=>b.onclick=()=>selectTopic(+b.dataset.i));
+}
+function selectTopic(i){ti=i;try{localStorage.setItem(KEY+"-t",i)}catch(e){}onlyWrong=false;order=DATA[i].cards.map((_,k)=>k);pos=0;buildTopics();render()}
+
+function render(){
+  const T=DATA[ti]; $("tname").innerHTML=T.name+(onlyWrong?'<span class="modeTag">틀린 카드만</span>':"");
+  const n=order[pos]; const c=T.cards[n];
+  $("card").classList.remove("flipped");
+  $("q").textContent=c[0]; $("a").textContent=c[1];
+  $("ftag").textContent=`문제 ${n+1}`; $("btag").textContent=`답 ${n+1}`;
+  $("pos").textContent=`${pos+1} / ${order.length}`;
+  $("prev").disabled=pos===0; $("next").disabled=pos===order.length-1;
+  renderPanel();
+}
+function renderPanel(){
+  const T=DATA[ti],r=res(),cur=order[pos];
+  const ok=[],bad=[];T.cards.forEach((_,k)=>{if(r[k]==="o")ok.push(k+1);else if(r[k]==="x")bad.push(k+1)});
+  const none=T.cards.length-ok.length-bad.length;
+  $("score").innerHTML=`<span class="s-ok">맞힘 <b>${ok.length}</b></span><span class="s-bad">틀림 <b>${bad.length}</b></span><span class="s-none">안 푼 카드 <b>${none}</b></span><span class="s-none">전체 ${T.cards.length}장</span>`;
+  $("nums").innerHTML=T.cards.map((_,k)=>`<button class="num ${r[k]||""} ${k===cur?"cur":""}" type="button" data-k="${k}" aria-label="${k+1}번 카드">${k+1}</button>`).join("");
+  $("nums").querySelectorAll(".num").forEach(b=>b.onclick=()=>jump(+b.dataset.k));
+  $("lists").innerHTML=`<div><strong class="s-ok">맞힌 카드:</strong> <span>${ok.join(", ")||"없음"}</span></div><div><strong class="s-bad">틀린 카드:</strong> <span>${bad.join(", ")||"없음"}</span></div>`;
+  $("retry").disabled=bad.length===0;
+}
+function jump(k){let p=order.indexOf(k);if(p<0){onlyWrong=false;order=DATA[ti].cards.map((_,i)=>i);p=k}pos=p;render()}
+function flip(){$("card").classList.toggle("flipped")}
+function mark(v){res()[order[pos]]=v;save();if(pos<order.length-1){pos++;render()}else{renderPanel()}}
+
+$("card").onclick=flip;
+$("card").onkeydown=e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();flip()}};
+$("bo").onclick=()=>mark("o"); $("bx").onclick=()=>mark("x");
+$("prev").onclick=()=>{if(pos>0){pos--;render()}};
+$("next").onclick=()=>{if(pos<order.length-1){pos++;render()}};
+$("retry").onclick=()=>{const r=res();const w=DATA[ti].cards.map((_,k)=>k).filter(k=>r[k]==="x");if(!w.length)return;onlyWrong=true;order=w;pos=0;render()};
+$("all").onclick=()=>{onlyWrong=false;order=DATA[ti].cards.map((_,k)=>k);pos=0;render()};
+$("shuffle").onclick=()=>{for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]]}pos=0;render()};
+$("reset").onclick=()=>{$("confirm").hidden=false};
+$("no").onclick=()=>{$("confirm").hidden=true};
+$("yes").onclick=()=>{store[ti]={};save();$("confirm").hidden=true;renderPanel()};
+document.addEventListener("keydown",e=>{if(e.target.tagName==="BUTTON"&&e.key!=="ArrowLeft"&&e.key!=="ArrowRight")return;if(e.key==="ArrowRight")$("next").click();if(e.key==="ArrowLeft")$("prev").click()});
+
+selectTopic(ti);
+document.getElementById("fallback").hidden=true;document.getElementById("app").hidden=false;
+</script>
+
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}
+</script>
+</body>
+</html>
